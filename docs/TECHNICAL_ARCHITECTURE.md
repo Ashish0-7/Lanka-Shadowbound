@@ -1,18 +1,23 @@
 # Technical Architecture — Lanka Shadowbound
 
 ## Status
-Initial architecture brief. Member 1 must validate and complete decisions marked **TBD** before parallel implementation depends on them.
+Foundation established on `feature/project-foundation`. The settings below are the initial project baseline and remain reviewable by Member 1.
 
 ## Target technology
-- Engine: Godot 4.x.
+- Engine: Godot 4.7.2 stable (official build `ed1daf0bf`).
 - Language: GDScript.
 - Target: desktop playable hackathon build; confirm target OS/export template with the team.
 - Rendering: 2D pixel-art.
+- Renderer: Compatibility (`gl_compatibility`).
+- Perspective: top-down 2D for the initial foundation.
+- Logical viewport: 640 × 360; window override: 1280 × 720; viewport stretch mode.
+- Tile size baseline: 16 × 16 pixels.
+- Texture filtering: nearest/no smoothing for pixel-art textures.
 - Backend/network: not required for the core single-player game unless explicitly approved.
 
 Record the exact Godot minor version and use it consistently.
 
-## Proposed scene organisation
+## Scene organisation
 - Bootstrap/main scene: startup and global services.
 - Main menu: start, restart/continue if supported, options/exit.
 - Player scene: one canonical controller and ability interface.
@@ -20,6 +25,13 @@ Record the exact Godot minor version and use it consistently.
 - UI scenes: reusable HUD, pause menu, dialogue and interaction presentation.
 - Encounter scenes: Surasa, Simhika and Lankini.
 - Ending scene/presentation: mission completion.
+
+Initial concrete paths:
+- Project configuration: `project.godot`.
+- Main scene: `scenes/main.tscn`.
+- Placeholder Hanuman/canonical prototype player: `scenes/player/hanuman.tscn`.
+- Player controller: `scripts/player/player_controller.gd`.
+- Initial bounded movement test area: `scenes/levels/test_environment.tscn`.
 
 Record concrete scene paths after the initial Godot project is created.
 
@@ -34,9 +46,14 @@ Record concrete scene paths after the initial Godot project is created.
 
 Avoid global autoloads for features that can remain local. Member 1 approves autoloads/shared services.
 
+Initial repository folders:
+- `scenes/`: `encounters/`, `levels/`, `player/`, and `ui/`.
+- `scripts/`: `combat/`, `enemies/`, `player/`, `story/`, `systems/`, `ui/`, and `world/`.
+- `assets/`: `animations/`, `audio/`, `characters/`, `environments/`, and `ui/`.
+
 ## Shared contracts to define before parallel work
 Member 1 must document:
-1. Player movement/ability API and input action names.
+1. Player movement/ability API and input action names. Initial movement contract is recorded in `docs/INTEGRATION_CONTRACTS.md`.
 2. How encounters request player actions and report success/failure.
 3. Health/damage interface, if shared.
 4. How interactables expose prompts and trigger interactions.
@@ -49,11 +66,11 @@ Member 1 must document:
 
 Agents must not independently invent incompatible contracts.
 
-## Perspective and camera — TBD
-Choose top-down, side-view or an intentional hybrid. If perspectives vary by level, make transitions deliberate and controls consistent. Document player dimensions, collision conventions, camera limits and movement rules before building level geometry.
+## Perspective and camera
+Initial perspective is top-down 2D. `Camera2D` is a child of the player and follows with position smoothing; its limits match the initial 1280 × 720 test environment. Camera behavior may be refined with level geometry, but must remain consistent with the approved perspective.
 
-## Input map — TBD
-Define named actions for movement, interact, primary action/attack, ability, dodge and pause, plus any level-specific input. Avoid scattered hard-coded key checks.
+## Input map
+Movement actions are defined in `project.godot`: `move_up`, `move_down`, `move_left`, and `move_right`, each bound to both WASD and arrow keys. The prototype reads these actions through `Input.get_vector`; do not add hard-coded movement key checks. Interact, primary action/attack, ability, dodge and pause remain to be defined before those features are implemented.
 
 ## Asset/pixel pipeline
 Member 3 proposes and Member 1 approves:

@@ -1,10 +1,10 @@
 # Development Status — Lanka Shadowbound
 
 ## Current status
-**Phase:** Repository setup and planning.  
+**Phase:** Initial project foundation.
 **Repository:** https://github.com/Ashish0-7/Lanka-Shadowbound  
-**Engine:** Godot 4.x/GDScript proposed; exact version and initial project setup not yet confirmed.  
-**Playable build:** Not yet verified.
+**Engine:** Godot 4.7.2 stable/GDScript; Compatibility renderer.
+**Playable build:** Initial movement scene created; interactive movement still needs editor/runtime verification.
 
 ## Locked decisions
 - Title: Lanka Shadowbound.
@@ -13,6 +13,7 @@
 - Five-level sequence: Crossing the Ocean; The Gates of Lanka; Lanka at Night; Ashoka Vatika; The Escape.
 - Four roles are defined in README and `TEAM_RESPONSIBILITIES.md`.
 - One shared GitHub repository is the source of truth.
+- Initial foundation baseline: top-down 2D, 640 × 360 logical viewport, 16 × 16 tile-size target, 1280 × 720 window override, Compatibility renderer, WASD/arrow movement.
 
 ## Critical path
 1. Member 1 confirms Godot version, perspective, viewport, controls and shared contracts.
@@ -26,10 +27,10 @@
 
 | Task | Owner | Status |
 |---|---|---|
-| Confirm Godot version and create initial project | Member 1 | Not started |
-| Decide perspective, resolution, tile scale and input map | Member 1 | Not started |
-| Define player and transition contracts | Member 1 | Not started |
-| Implement canonical player movement/controller | Member 1 with Member 2 | Not started |
+| Confirm Godot version and create initial project | Member 1 | In review |
+| Decide perspective, resolution, tile scale and input map | Member 1 | In review |
+| Define player and transition contracts | Member 1 | In progress |
+| Implement canonical player movement/controller | Member 1 with Member 2 | In review |
 | Surasa timing challenge | Member 2 | Not started |
 | Simhika shadow encounter | Member 2 | Not started |
 | Lankini boss encounter | Member 2 | Not started |
@@ -45,9 +46,7 @@
 Use Not started, In progress, Blocked, In review and Done. Mark Done only after the owner reports files, tests and integration status. Never mark untested work as verified.
 
 ## Open decisions (Member 1 owns)
-- Exact Godot version.
-- Top-down, side-view or intentional hybrid.
-- Logical viewport/window resolution and pixel scale.
-- Input actions and player movement contract.
+- Review and approve the provisional Godot version, perspective, resolution, tile scale, renderer and movement bindings recorded in `TECHNICAL_ARCHITECTURE.md`.
+- Input actions beyond movement and the extended player contract (abilities, combat, health, interactions and animation states).
 - Main scene and shared autoload/service decisions.
 - Export target and final presentation requirements.
