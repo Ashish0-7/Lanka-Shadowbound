@@ -8,6 +8,7 @@ var _dialogue_box: DialogueBox
 func _ready() -> void:
 	ground_color = Color("24402d")
 	accent_color = Color("6d9b4e")
+	environment_style = "vatika"
 	obstacle_points = [Vector2(280, 200), Vector2(280, 520), Vector2(520, 200), Vector2(520, 520), Vector2(790, 200), Vector2(790, 520), Vector2(1040, 360)]
 	super._ready()
 	var ui_layer := CanvasLayer.new()
@@ -20,10 +21,10 @@ func _add_sita() -> void:
 	var sita := Node2D.new()
 	sita.name = "Sita"
 	sita.position = Vector2(1100, 360)
-	var marker := Polygon2D.new()
-	marker.polygon = PackedVector2Array([Vector2(-12, 12), Vector2(-10, -12), Vector2(10, -12), Vector2(12, 12)])
-	marker.color = Color("e7c56c")
-	sita.add_child(marker)
+	var character := Sprite2D.new()
+	character.texture = preload("res://assets/characters/npcs/char_sita_24x32.png")
+	character.position = Vector2(0, -4)
+	sita.add_child(character)
 	var zone := Area2D.new()
 	zone.name = "TalkZone"
 	zone.collision_layer = 0

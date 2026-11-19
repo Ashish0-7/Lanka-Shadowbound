@@ -7,6 +7,7 @@ var _dialogue_box: DialogueBox
 func _ready() -> void:
 	ground_color = Color("191a35")
 	accent_color = Color("a07c52")
+	environment_style = "palace"
 	obstacle_points = [Vector2(310, 210), Vector2(310, 510), Vector2(660, 210), Vector2(660, 510), Vector2(1010, 210), Vector2(1010, 510)]
 	super._ready()
 	_add_partition(430.0)
@@ -41,10 +42,10 @@ func _add_mandodari() -> void:
 	var npc := Node2D.new()
 	npc.name = "Mandodari"
 	npc.position = Vector2(1080, 360)
-	var marker := Polygon2D.new()
-	marker.polygon = PackedVector2Array([Vector2(-14, 10), Vector2(-12, -10), Vector2(12, -10), Vector2(14, 10)])
-	marker.color = Color("db91bd")
-	npc.add_child(marker)
+	var character := Sprite2D.new()
+	character.texture = preload("res://assets/characters/npcs/char_mandodari_32x24.png")
+	character.position = Vector2(0, -4)
+	npc.add_child(character)
 	var zone := Area2D.new()
 	zone.name = "TalkZone"
 	zone.collision_layer = 0

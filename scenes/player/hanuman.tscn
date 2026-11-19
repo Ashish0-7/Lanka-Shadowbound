@@ -1,6 +1,7 @@
 [gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/player/hanuman_visuals.gd" id="2_visuals"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_body"]
 radius = 7.0
@@ -12,21 +13,28 @@ collision_mask = 1
 script = ExtResource("1_controller")
 
 [node name="Body" type="Polygon2D" parent="."]
+visible = false
 polygon = PackedVector2Array(-6, -8, 6, -8, 8, -3, 8, 5, 4, 9, -4, 9, -8, 5, -8, -3)
 color = Color(0.78, 0.36, 0.19, 1)
 
 [node name="Head" type="Polygon2D" parent="."]
+visible = false
 position = Vector2(0, -9)
 polygon = PackedVector2Array(-5, -4, -3, -7, 3, -7, 5, -4, 4, 1, -4, 1)
 color = Color(0.94, 0.63, 0.37, 1)
 
 [node name="Mukut" type="Polygon2D" parent="."]
+visible = false
 position = Vector2(0, -15)
 polygon = PackedVector2Array(-3, 0, 0, -5, 3, 0)
 color = Color(0.95, 0.75, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CapsuleShape2D_body")
+
+[node name="Visual" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -5)
+script = ExtResource("2_visuals")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position_smoothing_enabled = true
