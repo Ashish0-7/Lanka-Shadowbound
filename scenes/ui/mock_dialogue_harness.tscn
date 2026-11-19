@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/mock_dialogue_harness.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dialogue_box.tscn" id="2_dialogue"]
+
+[node name="MockDialogueHarness" type="Node"]
+script = ExtResource("1_script")
+
+[node name="DialogueBox" parent="." instance=ExtResource("2_dialogue")]
+
+[node name="Instructions" type="Label" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -20.0
+offset_right = 200.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.54902, 0.52549, 0.619608, 1)
+theme_override_font_sizes/font_size = 10
+text = "PRESS [1]: Mandodari Scene (Level 3)
+PRESS [2]: Sita Ring Handover Scene (Level 4)
+PRESS [ENTER / E]: Skip Typewriter / Advance"
+horizontal_alignment = 1
+vertical_alignment = 1
