@@ -7,7 +7,7 @@ extends Node2D
 const LEVEL_NAMES := ["", "CROSSING THE OCEAN", "THE GATES OF LANKA", "LANKA AT NIGHT", "ASHOKA VATIKA", "THE ESCAPE"]
 const LEVEL_OBJECTIVES := ["", "Shrink with [SHIFT] to pass Surasa, then cross the sea.", "Strike Lankini with [J] when you are close.", "Search the palace and avoid the guards' sight.", "Find Sita and present Rama's ring.", "Run across the burning rooftops and reach the ocean."]
 
-@onready var player: Node2D = get_parent().get_node("Hanuman")
+@onready var player = get_parent().get_node("Hanuman")
 @onready var dialogue: DialogueBox = get_parent().get_node("DialogueBox")
 @onready var notification: ObjectiveNotification = get_parent().get_node("ObjectiveNotification")
 @onready var tutorial: TutorialHint = get_parent().get_node("TutorialHint")
@@ -34,7 +34,7 @@ func _create_bosses() -> void:
 	surasa_boss = BossSprite.new()
 	surasa_boss.boss_name = "surasa"
 	surasa_boss.name = "Surasa"
-	surasa_boss.position = Vector2(700, 360)
+	surasa_boss.position = Vector2(350, 180)
 	surasa_boss.scale = Vector2(1.35, 1.35)
 	surasa_boss.z_index = 1
 	add_child(surasa_boss)
@@ -42,7 +42,7 @@ func _create_bosses() -> void:
 	simhika_boss = BossSprite.new()
 	simhika_boss.boss_name = "simhika"
 	simhika_boss.name = "Simhika"
-	simhika_boss.position = Vector2(980, 360)
+	simhika_boss.position = Vector2(490, 180)
 	simhika_boss.scale = Vector2(1.35, 1.35)
 	simhika_boss.z_index = 1
 	add_child(simhika_boss)
@@ -50,7 +50,7 @@ func _create_bosses() -> void:
 	lankini_boss = BossSprite.new()
 	lankini_boss.boss_name = "lankini"
 	lankini_boss.name = "Lankini"
-	lankini_boss.position = Vector2(960, 360)
+	lankini_boss.position = Vector2(500, 180)
 	lankini_boss.scale = Vector2(1.5, 1.5)
 	lankini_boss.z_index = 1
 	add_child(lankini_boss)
@@ -70,7 +70,7 @@ func _start_chapter(number: int) -> void:
 	boss_health = 0
 	dialogue_seen = false
 	guard_alert = 0.0
-	player.global_position = Vector2(100, 360)
+	player.global_position = Vector2(50, 180)
 	player.restore_health()
 	map_overlay.visible = number == 3
 	map_overlay.clear_reveal()
@@ -108,20 +108,20 @@ func _advance_chapter() -> void:
 		_show_ending()
 
 func _update_ocean(_delta: float) -> void:
-	if player.global_position.x > 620 and player.global_position.x < 820:
+	if player.global_position.x > 310 and player.global_position.x < 410:
 		surasa_boss.play_once("special" if player.is_shrunk() else "attack", 0.7)
-	elif player.global_position.x > 900:
+	elif player.global_position.x > 450:
 		simhika_boss.play_once("special", 0.7)
 	else:
 		surasa_boss.set_state("idle")
 		simhika_boss.set_state("idle")
-	if player.global_position.x > 620 and player.global_position.x < 820 and not player.is_shrunk():
+	if player.global_position.x > 310 and player.global_position.x < 410 and not player.is_shrunk():
 		_warn_or_damage("Surasa's jaws close! Use [SHIFT] to shrink.")
-	if player.global_position.x > 1120:
+	if player.global_position.x > 600:
 		_advance_chapter()
 
 func _update_gates(delta: float) -> void:
-	var boss := Vector2(960, 360)
+	var boss := Vector2(500, 180)
 	if boss_health > 0 and player.global_position.distance_to(boss) < 110.0 and hazard_cooldown <= 0.0:
 		player.take_damage(8)
 		hazard_cooldown = 1.2
@@ -132,39 +132,39 @@ func _update_gates(delta: float) -> void:
 		_advance_chapter()
 
 func _update_night(delta: float) -> void:
-	var cell := Vector2i(int(player.global_position.x / 64.0), int(player.global_position.y / 60.0))
+	var cell := Vector2i(int(player.global_position.x / 32.0), int(player.global_position.y / 30.0))
 	GameEvents.reveal_map_cell(cell)
-	var guard := Vector2(650, 360)
-	var distance := player.global_position.distance_to(guard)
+	var guard := Vector2(325, 180)
+	var distance: float = player.global_position.distance_to(guard)
 	guard_alert = move_toward(guard_alert, 1.0 if distance < 105.0 else 0.0, delta * 0.8)
 	GameEvents.stealth_alert_level_changed.emit(guard_alert, guard_alert > 0.92)
 	if guard_alert > 0.92:
 		_warn_or_damage("A guard has spotted you—retreat into shadow.")
-	if player.global_position.x > 480 and not dialogue_seen:
+	if player.global_position.x > 240 and not dialogue_seen:
 		dialogue_seen = true
 		dialogue.play_mandodari_misunderstanding_scene()
-	if dialogue_seen and not dialogue.is_active and player.global_position.x > 1100:
+	if dialogue_seen and not dialogue.is_active and player.global_position.x > 580:
 		_advance_chapter()
 
 func _update_vatika() -> void:
-	if player.global_position.x > 620 and not dialogue_seen:
+	if player.global_position.x > 310 and not dialogue_seen:
 		dialogue_seen = true
 		dialogue.play_sita_ring_handover_scene()
-	if dialogue_seen and not dialogue.is_active and player.global_position.x > 820:
+	if dialogue_seen and not dialogue.is_active and player.global_position.x > 410:
 		_advance_chapter()
 
 func _update_escape(_delta: float) -> void:
-	if player.global_position.x > 360 and player.global_position.x < 1040 and hazard_cooldown <= 0.0:
+	if player.global_position.x > 180 and player.global_position.x < 520 and hazard_cooldown <= 0.0:
 		player.take_damage(7)
 		hazard_cooldown = 1.0
 		GameEvents.encounter_feedback.emit("Flames scorch the rooftops—keep moving!")
-	if player.global_position.x > 1160:
+	if player.global_position.x > 580:
 		_advance_chapter()
 
 func _on_player_attack(origin: Vector2) -> void:
 	if chapter != 2 or boss_health <= 0:
 		return
-	if origin.distance_to(Vector2(960, 360)) <= player.attack_range:
+	if origin.distance_to(Vector2(500, 180)) <= player.attack_range:
 		boss_health -= 1
 		lankini_boss.play_once("hurt", 0.55)
 		GameEvents.encounter_feedback.emit("Lankini staggered! %d strikes remain." % boss_health)
@@ -190,19 +190,23 @@ func _show_ending() -> void:
 	notification.notify("MISSION COMPLETE", "LANKA SHADOWBOUND", "Hanuman returns across the ocean with hope for Rama and Sita.", true)
 
 func _draw() -> void:
-	var background := [Color("#16405e"), Color("#422938"), Color("#12172e"), Color("#264b31"), Color("#54231c")][chapter - 1]
-	draw_rect(Rect2(0, 0, 1280, 720), background)
-	for x in range(80, 1240, 120):
-		draw_circle(Vector2(x, 280 + sin(float(x)) * 35.0), 18.0, Color("#fce27c") if chapter == 4 else Color("#3b4876"))
+	var backgrounds: Array[Color] = [
+		Color("#16405e"), Color("#422938"), Color("#12172e"),
+		Color("#264b31"), Color("#54231c")
+	]
+	var background: Color = backgrounds[chapter - 1]
+	draw_rect(Rect2(0, 0, 640, 360), background)
+	for x in range(20, 620, 60):
+		draw_circle(Vector2(x, 140 + sin(float(x)) * 18.0), 9.0, Color("#fce27c") if chapter == 4 else Color("#3b4876"))
 	if chapter == 1:
-		draw_circle(Vector2(700, 360), 75.0, Color("#6e1724"))
-		draw_string(ThemeDB.fallback_font, Vector2(635, 365), "SURASA", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color.WHITE)
+		draw_circle(Vector2(350, 180), 38.0, Color("#6e1724"))
+		draw_string(ThemeDB.fallback_font, Vector2(318, 182), "SURASA", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 	if chapter == 2 and boss_health > 0:
-		draw_circle(Vector2(960, 360), 44.0, Color("#ba2535"))
-		draw_string(ThemeDB.fallback_font, Vector2(900, 300), "LANKINI  %d/6" % boss_health, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
+		draw_circle(Vector2(500, 180), 22.0, Color("#ba2535"))
+		draw_string(ThemeDB.fallback_font, Vector2(450, 150), "LANKINI  %d/6" % boss_health, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 	if chapter == 3:
-		draw_circle(Vector2(650, 360), 28.0, Color("#f7b945"))
-		draw_string(ThemeDB.fallback_font, Vector2(600, 315), "GUARD", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+		draw_circle(Vector2(325, 180), 14.0, Color("#f7b945"))
+		draw_string(ThemeDB.fallback_font, Vector2(300, 158), "GUARD", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 	if chapter == 5:
-		for x in range(380, 1040, 120):
-			draw_circle(Vector2(x, 430), 24.0, Color("#eb7e28"))
+		for x in range(190, 520, 60):
+			draw_circle(Vector2(x, 215), 12.0, Color("#eb7e28"))

@@ -2,11 +2,40 @@
 
 [ext_resource type="PackedScene" path="res://scenes/levels/test_environment.tscn" id="1_environment"]
 [ext_resource type="PackedScene" path="res://scenes/player/hanuman.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="4_pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dialogue_box.tscn" id="5_dialogue"]
+[ext_resource type="PackedScene" path="res://scenes/ui/interaction_prompt.tscn" id="6_interaction"]
+[ext_resource type="PackedScene" path="res://scenes/ui/objective_notification.tscn" id="7_notification"]
+[ext_resource type="PackedScene" path="res://scenes/ui/tutorial_hint.tscn" id="8_tutorial"]
+[ext_resource type="PackedScene" path="res://scenes/ui/level_transition.tscn" id="9_transition"]
+[ext_resource type="PackedScene" path="res://scenes/ui/map_reveal_overlay.tscn" id="10_map_reveal"]
+[ext_resource type="Script" path="res://scripts/world/mission_director.gd" id="11_director"]
 
 [node name="Main" type="Node2D" unique_id=696829217]
 
 [node name="TestEnvironment" parent="." unique_id=1621593402 instance=ExtResource("1_environment")]
 position = Vector2(0, 0)
+visible = false
 
 [node name="Hanuman" parent="." unique_id=851366360 instance=ExtResource("2_player")]
-position = Vector2(640, 360)
+position = Vector2(320, 180)
+
+[node name="HUD" parent="." instance=ExtResource("3_hud")]
+
+[node name="PauseMenu" parent="." instance=ExtResource("4_pause")]
+
+[node name="DialogueBox" parent="." instance=ExtResource("5_dialogue")]
+
+[node name="InteractionPrompt" parent="." instance=ExtResource("6_interaction")]
+
+[node name="ObjectiveNotification" parent="." instance=ExtResource("7_notification")]
+
+[node name="TutorialHint" parent="." instance=ExtResource("8_tutorial")]
+
+[node name="MapRevealOverlay" parent="." visible=false instance=ExtResource("10_map_reveal")]
+
+[node name="LevelTransition" parent="." instance=ExtResource("9_transition")]
+
+[node name="MissionDirector" type="Node2D" parent="."]
+script = ExtResource("11_director")

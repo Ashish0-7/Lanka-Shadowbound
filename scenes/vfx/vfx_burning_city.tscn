@@ -1,0 +1,40 @@
+[gd_scene load_steps=3 format=3 uid="uid://vfx_burning_city"]
+
+[ext_resource type="Script" path="res://scripts/vfx/vfx_burning_city.gd" id="1_burncity"]
+[ext_resource type="PackedScene" path="res://scenes/vfx/vfx_fire.tscn" id="2_fire"]
+
+[node name="VFXBurningCity" type="Node2D"]
+script = ExtResource("1_burncity")
+
+[node name="SkyTint" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.549, 0.153, 0.082, 0.0)
+mouse_filter = 2
+
+[node name="EmberRain" type="CPUParticles2D" parent="."]
+amount = 60
+lifetime = 3.0
+one_shot = false
+explosiveness = 0.0
+emission_shape = 1
+emission_rect_extents = Vector2(320, 10)
+direction = Vector2(0.2, 1)
+spread = 20.0
+gravity = Vector2(0, 40)
+initial_velocity_min = 20.0
+initial_velocity_max = 50.0
+color = Color(0.988, 0.502, 0.047, 0.8)
+emitting = false
+
+[node name="FireColumns" type="Node2D" parent="."]
+
+[node name="FireCol1" parent="FireColumns" instance=ExtResource("2_fire")]
+position = Vector2(-96, 0)
+
+[node name="FireCol2" parent="FireColumns" instance=ExtResource("2_fire")]
+position = Vector2(0, 0)
+
+[node name="FireCol3" parent="FireColumns" instance=ExtResource("2_fire")]
+position = Vector2(96, 0)

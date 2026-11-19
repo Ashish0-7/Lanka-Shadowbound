@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://vfx_hit_flash"]
+
+[ext_resource type="Script" path="res://scripts/vfx/vfx_hit_flash.gd" id="1_hitflash"]
+
+[node name="VFXHitFlash" type="Node"]
+script = ExtResource("1_hitflash")

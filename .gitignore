@@ -1,5 +1,6 @@
 # Godot editor and imported-resource cache
 .godot/
+*.import
 
 # Local exports and editor state
 /export.cfg

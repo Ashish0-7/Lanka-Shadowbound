@@ -51,6 +51,8 @@ func _physics_process(delta: float) -> void:
 	var input_direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_direction * (move_speed * (0.72 if is_shrunk() else 1.0))
 	move_and_slide()
+	global_position.x = clampf(global_position.x, 16.0, 624.0)
+	global_position.y = clampf(global_position.y, 16.0, 344.0)
 	_update_shrink(delta)
 	_update_sprite(delta, input_direction)
 

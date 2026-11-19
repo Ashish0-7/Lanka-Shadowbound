@@ -29,14 +29,14 @@ func _ready() -> void:
 	set_objective("Reach the shores of Lanka across the great ocean.", false)
 	set_stealth_alert(0.0, false)
 	
-	# Attempt automatic binding to EventBus autoload if present
-	_bind_to_event_bus()
+	# Bind only to the approved display-facing autoload if it is present.
+	_bind_to_game_events()
 
-func _bind_to_event_bus() -> void:
-	if not has_node("/root/EventBus"):
+func _bind_to_game_events() -> void:
+	if not has_node("/root/GameEvents"):
 		return
 		
-	var bus: Node = get_node("/root/EventBus")
+	var bus: Node = get_node("/root/GameEvents")
 	
 	# Health contracts (Owned by Member 2 - Combat/Player)
 	if bus.has_signal("player_health_changed"):
@@ -57,7 +57,7 @@ func _bind_to_event_bus() -> void:
 		bus.connect("stealth_alert_level_changed", Callable(self, "set_stealth_alert"))
 
 # ==============================================================================
-# STATE CONSUMER APIS (Called by EventBus or Mock Harness)
+# STATE CONSUMER APIS (Called by GameEvents or Mock Harness)
 # ==============================================================================
 
 ## Updates the health bar and text readout.

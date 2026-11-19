@@ -1,0 +1,38 @@
+[gd_scene load_steps=8 format=3 uid="uid://mock_vfx_harness"]
+
+[ext_resource type="Script" path="res://scripts/vfx/mock_vfx_harness.gd" id="1_harness"]
+[ext_resource type="PackedScene" path="res://scenes/vfx/vfx_water_spray.tscn" id="2_wspray"]
+[ext_resource type="PackedScene" path="res://scenes/vfx/vfx_shadow_tentacle.tscn" id="3_tent"]
+[ext_resource type="PackedScene" path="res://scenes/vfx/vfx_fire.tscn" id="4_fire"]
+[ext_resource type="PackedScene" path="res://scenes/vfx/vfx_burning_city.tscn" id="5_city"]
+
+[node name="MockVFXHarness" type="Node"]
+script = ExtResource("1_harness")
+
+[node name="Instructions" type="Label" parent="."]
+anchors_preset = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 400.0
+offset_bottom = 200.0
+text = "VFX Harness (Task 10)
+1 = Water Spray   2 = Shadow Tentacle
+3 = Small Torch   4 = Large Blaze   5 = Ember Trail
+6 = Burning City Start   7 = Burning City Stop
+H = Hit Flash   D = Damage Flash
+S = Shrink Flash   A = Heal Flash"
+
+[node name="DummySprite" type="Sprite2D" parent="."]
+position = Vector2(320, 180)
+
+[node name="VFXWaterSpray" parent="." instance=ExtResource("2_wspray")]
+position = Vector2(200, 200)
+
+[node name="VFXShadowTentacle" parent="." instance=ExtResource("3_tent")]
+position = Vector2(320, 180)
+
+[node name="VFXFire" parent="." instance=ExtResource("4_fire")]
+position = Vector2(420, 200)
+
+[node name="VFXBurningCity" parent="." instance=ExtResource("5_city")]
+position = Vector2(320, 180)
