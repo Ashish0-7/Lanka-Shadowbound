@@ -12,8 +12,14 @@ Agents must not assume proposed names are implemented APIs until Member 1 confir
 - Check the repository before assuming a node path, autoload or method exists.
 - Shared-contract changes require agreement from affected members and an update to this file.
 
-## Player contract — TBD
-Record canonical player scene, movement ownership, abilities and invocation, health/damage interface, animation states, interaction entry point and player-state signals. Member 2 owns ability/combat behaviour; Member 1 owns shared architecture/integration.
+## Player contract — initial movement foundation
+- Canonical prototype scene: `res://scenes/player/hanuman.tscn`, root node `Hanuman` (`CharacterBody2D`).
+- Controller script: `res://scripts/player/player_controller.gd`; movement ownership and initial integration remain with Member 1, coordinated with Member 2 before adding ability/combat behavior.
+- Movement speed is the exported `move_speed` property (initial default 120 pixels/second).
+- Input actions: `move_up`, `move_down`, `move_left`, `move_right`; each supports WASD and arrow keys. The controller uses `Input.get_vector`, so diagonal movement is normalized.
+- Collision: root `CharacterBody2D` on layer/mask 1 with a child `CollisionShape2D` capsule. Level geometry supplies `StaticBody2D` collisions.
+- Camera: child `Camera2D` follows the player with smoothing, bounded to the current test level.
+- The polygon drawing is temporary placeholder presentation. No health, damage, combat, abilities, interactions, animation states or player-state signals are established by this prototype.
 
 ## Encounter contract — TBD
 Each encounter needs a clear lifecycle: initialise/reset, become active, report success/defeat, report failure/retry if applicable, and communicate completion to level/story progression. Member 2 owns mechanics; Member 4 owns placement/layout/story sequence; Member 1 approves interface.
