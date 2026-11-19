@@ -1,0 +1,50 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/mock_interaction_harness.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/interaction_prompt.tscn" id="2_prompt"]
+[ext_resource type="PackedScene" path="res://scenes/ui/objective_notification.tscn" id="3_notif"]
+
+[node name="MockInteractionHarness" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="DummyInteractable" type="Node2D" parent="."]
+position = Vector2(320, 200)
+
+[node name="VisualMarker" type="ColorRect" parent="DummyInteractable"]
+offset_left = -8.0
+offset_top = -12.0
+offset_right = 8.0
+offset_bottom = 12.0
+color = Color(0.988235, 0.886275, 0.486275, 1)
+
+[node name="MarkerLabel" type="Label" parent="DummyInteractable"]
+offset_left = -24.0
+offset_top = 16.0
+offset_right = 24.0
+offset_bottom = 29.0
+theme_override_font_sizes/font_size = 8
+text = "[NPC / Target]"
+horizontal_alignment = 1
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="InteractionPrompt" parent="CanvasLayer" instance=ExtResource("2_prompt")]
+
+[node name="ObjectiveNotification" parent="CanvasLayer" instance=ExtResource("3_notif")]
+
+[node name="Instructions" type="Label" parent="CanvasLayer"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -230.0
+offset_top = -24.0
+offset_right = 230.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.54902, 0.52549, 0.619608, 1)
+theme_override_font_sizes/font_size = 8
+text = "TEST KEYS: [1] Prompt Sita • [2] Prompt Leap • [3] Hide Prompt • [4] New Goal • [5] Complete Goal"
+horizontal_alignment = 1

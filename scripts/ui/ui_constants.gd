@@ -5,10 +5,10 @@ extends RefCounted
 ## Follows docs/VISUAL_IDENTITY.md specifications.
 
 # ==============================================================================
-# VIEWPORT & GRID SPECIFICATIONS (Defaults pending Member 1 confirmation)
+# VIEWPORT & GRID SPECIFICATIONS (Updated to 640x360 per project decision)
 # ==============================================================================
-const VIEWPORT_WIDTH: int = 480
-const VIEWPORT_HEIGHT: int = 270
+const VIEWPORT_WIDTH: int = 640
+const VIEWPORT_HEIGHT: int = 360
 const TILE_SIZE: int = 16
 const SPRITE_HANUMAN_NORMAL_WIDTH: int = 24
 const SPRITE_HANUMAN_NORMAL_HEIGHT: int = 32

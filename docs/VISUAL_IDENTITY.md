@@ -119,8 +119,8 @@ Files must strictly follow `snake_case` with `category_name_variant_frame.ext`:
 
 ---
 
-## 6. Open Decisions Pending Member 1
-1. **Target Viewport Resolution:** Standard pixel resolutions under consideration: `320×180` (16:9), `480×270` (16:9), or `640×360` (16:9).
+## 6. Architecture Decisions & Open Items
+1. **Target Viewport Resolution:** **Decided:** `640×360` (16:9 widescreen pixel-art base; scales 3× to 1080p, 4× to 1440p, 6× to 4K).
 2. **Stretch Mode:** Recommended: `canvas_items` with aspect `keep` and integer scaling enabled in Godot project settings.
 3. **Base Tile Dimensions:** 16×16 px or 24×24 px grid.
-4. **Sprite Dimensions:** Hanuman base height (e.g. 24×32 px normal, 12×16 px shrunken).
+4. **Sprite Dimensions:** Hanuman base height (24×32 px normal, 12×16 px shrunken).

@@ -1,0 +1,87 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Theme" path="res://assets/ui/main_theme.tres" id="1_theme"]
+[ext_resource type="Script" path="res://scripts/ui/tutorial_hint.gd" id="2_script"]
+
+[node name="TutorialHint" type="Control"]
+layout_mode = 3
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -65.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme = ExtResource("1_theme")
+script = ExtResource("2_script")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HintPanel" type="PanelContainer" parent="CenterContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="CenterContainer/HintPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="HBox" type="HBoxContainer" parent="CenterContainer/HintPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="KeyBadge" type="Label" parent="CenterContainer/HintPanel/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.988235, 0.886275, 0.486275, 1)
+theme_override_colors/font_shadow_color = Color(0.0392157, 0.0313726, 0.0784314, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 11
+text = "[SHIFT]"
+vertical_alignment = 1
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/HintPanel/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="HeaderHBox" type="HBoxContainer" parent="CenterContainer/HintPanel/Margin/HBox/VBox"]
+layout_mode = 2
+
+[node name="TitleBadge" type="Label" parent="CenterContainer/HintPanel/Margin/HBox/VBox/HeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.356863, 0.501961, 0.65098, 1)
+theme_override_font_sizes/font_size = 8
+text = "DIVINE SIDDHI"
+
+[node name="Spacer" type="Control" parent="CenterContainer/HintPanel/Margin/HBox/VBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DismissLabel" type="Label" parent="CenterContainer/HintPanel/Margin/HBox/VBox/HeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.54902, 0.52549, 0.619608, 1)
+theme_override_font_sizes/font_size = 7
+text = "[ENTER / OK]"
+
+[node name="DescLabel" type="Label" parent="CenterContainer/HintPanel/Margin/HBox/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.831373, 0.756863, 0.611765, 1)
+theme_override_font_sizes/font_size = 9
+text = "Shrink your form to slip through Surasa's fangs and narrow crevices."
+autowrap_mode = 3

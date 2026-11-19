@@ -1,0 +1,71 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Theme" path="res://assets/ui/main_theme.tres" id="1_theme"]
+[ext_resource type="Script" path="res://scripts/ui/objective_notification.gd" id="2_script"]
+
+[node name="ObjectiveNotification" type="Control"]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 80.0
+grow_horizontal = 2
+mouse_filter = 2
+theme = ExtResource("1_theme")
+script = ExtResource("2_script")
+
+[node name="BannerPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 16.0
+offset_right = 150.0
+offset_bottom = 60.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="BannerPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="HBox" type="HBoxContainer" parent="BannerPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="IconLabel" type="Label" parent="BannerPanel/Margin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.988235, 0.886275, 0.486275, 1)
+theme_override_font_sizes/font_size = 14
+text = "✦"
+
+[node name="VBox" type="VBoxContainer" parent="BannerPanel/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="CategoryLabel" type="Label" parent="BannerPanel/Margin/HBox/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.356863, 0.501961, 0.65098, 1)
+theme_override_font_sizes/font_size = 8
+text = "NEW OBJECTIVE"
+
+[node name="TitleLabel" type="Label" parent="BannerPanel/Margin/HBox/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.984314, 0.956863, 0.886275, 1)
+theme_override_font_sizes/font_size = 11
+text = "Cross the Ocean"
+
+[node name="DescLabel" type="Label" parent="BannerPanel/Margin/HBox/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.831373, 0.756863, 0.611765, 1)
+theme_override_font_sizes/font_size = 9
+text = "Leap from Mahendra Mountain to Lanka's shores."
