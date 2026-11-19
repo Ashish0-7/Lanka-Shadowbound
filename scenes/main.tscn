@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/level_transition.tscn" id="9_transition"]
 [ext_resource type="PackedScene" path="res://scenes/ui/map_reveal_overlay.tscn" id="10_map_reveal"]
 [ext_resource type="Script" path="res://scripts/world/mission_director.gd" id="11_director"]
+[ext_resource type="PackedScene" path="res://scenes/ui/cinematic_overlay.tscn" id="12_cinematic"]
 
 [node name="Main" type="Node2D" unique_id=696829217]
 
@@ -61,6 +62,8 @@ offset_right = 640.0
 offset_bottom = 360.0
 
 [node name="LevelTransition" parent="." instance=ExtResource("9_transition")]
+
+[node name="CinematicOverlay" parent="." instance=ExtResource("12_cinematic")]
 
 [node name="MissionDirector" type="Node2D" parent="."]
 script = ExtResource("11_director")

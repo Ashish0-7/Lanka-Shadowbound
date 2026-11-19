@@ -7,6 +7,7 @@ extends Node2D
 ## Placeholder tuning for the vertical slice — Member 2 owns the final encounter rules.
 
 signal lankini_defeated()
+signal lankini_health_changed(health: int)
 
 const SURASA_POS := Vector2(350, 180)
 const SIMHIKA_POS := Vector2(490, 180)
@@ -90,7 +91,7 @@ func reset_for_chapter(chapter: int) -> void:
 	elif chapter == 2:
 		lankini.visible = true
 		lankini_health = LANKINI_MAX_HEALTH
-		_sfx("roar", -3.0, 0.9)
+		lankini_health_changed.emit(lankini_health)
 
 # --- Chapter 1: Surasa and Simhika ------------------------------------------------------
 
@@ -218,6 +219,7 @@ func on_player_attack(chapter: int, origin: Vector2, attack_range: float) -> boo
 		_hint("guard", "Lankini blocks while winding up — dodge the slam, then strike!")
 		return true
 	lankini_health -= 1
+	lankini_health_changed.emit(lankini_health)
 	lankini.recoil(origin)
 	_hit_feedback(LANKINI_POS, 3.0)
 	if lankini_attack.phase == TelegraphedAttack.Phase.RECOVER:
