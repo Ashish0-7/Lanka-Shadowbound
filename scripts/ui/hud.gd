@@ -56,6 +56,57 @@ func _bind_to_game_events() -> void:
 	if bus.has_signal("stealth_alert_level_changed"):
 		bus.connect("stealth_alert_level_changed", Callable(self, "set_stealth_alert"))
 
+	# Encounter call-outs ("Surasa's jaws open — shrink!", "Lankini staggered!")
+	if bus.has_signal("encounter_feedback"):
+		_build_feedback_toast()
+		bus.connect("encounter_feedback", Callable(self, "show_feedback"))
+
+# ==============================================================================
+# ENCOUNTER FEEDBACK TOAST
+# ==============================================================================
+
+var _feedback_panel: PanelContainer
+var _feedback_label: Label
+var _feedback_tween: Tween
+
+func _build_feedback_toast() -> void:
+	_feedback_panel = PanelContainer.new()
+	_feedback_panel.name = "FeedbackToast"
+	_feedback_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.06, 0.12, 0.82)
+	style.border_color = UIConstants.COLOR_DIVINE_GOLD
+	style.set_border_width_all(1)
+	style.set_content_margin_all(5)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	_feedback_panel.add_theme_stylebox_override("panel", style)
+	_feedback_label = Label.new()
+	_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_feedback_label.add_theme_font_size_override("font_size", 10)
+	_feedback_label.add_theme_color_override("font_color", UIConstants.COLOR_IVORY_LIGHT)
+	_feedback_panel.add_child(_feedback_label)
+	add_child(_feedback_panel)
+	_feedback_panel.modulate.a = 0.0
+	_feedback_panel.visible = false
+
+## Shows a short centred call-out just above the tutorial strip, replacing any current one.
+func show_feedback(text: String) -> void:
+	if _feedback_panel == null:
+		return
+	_feedback_label.text = text
+	_feedback_panel.visible = true
+	_feedback_panel.reset_size()
+	var panel_size := _feedback_panel.get_combined_minimum_size()
+	_feedback_panel.position = Vector2((size.x - panel_size.x) * 0.5, 258.0)
+	if _feedback_tween and _feedback_tween.is_valid():
+		_feedback_tween.kill()
+	_feedback_tween = create_tween()
+	_feedback_tween.tween_property(_feedback_panel, "modulate:a", 1.0, 0.12)
+	_feedback_tween.tween_interval(2.2)
+	_feedback_tween.tween_property(_feedback_panel, "modulate:a", 0.0, 0.4)
+	_feedback_tween.tween_callback(func(): _feedback_panel.visible = false)
+
 # ==============================================================================
 # STATE CONSUMER APIS (Called by GameEvents or Mock Harness)
 # ==============================================================================

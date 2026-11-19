@@ -14,46 +14,26 @@ const LEVEL_OBJECTIVES := ["", "Shrink with [SHIFT] to pass Surasa, then cross t
 @onready var map_overlay: MapRevealOverlay = get_parent().get_node("MapRevealOverlay")
 
 var chapter := 1
-var boss_health := 0
 var dialogue_seen := false
 var hazard_cooldown := 0.0
 var guard_alert := 0.0
-var surasa_boss: BossSprite
-var simhika_boss: BossSprite
-var lankini_boss: BossSprite
+var encounters: BossEncounters
+var _knockback_tween: Tween
 
 func _ready() -> void:
 	z_index = -10
 	player.connect("attack_performed", Callable(self, "_on_player_attack"))
 	dialogue.dialogue_completed.connect(_on_dialogue_completed)
 	get_parent().get_node("PauseMenu").restart_level_requested.connect(func(): _start_chapter(chapter))
-	_create_bosses()
+	encounters = BossEncounters.new()
+	encounters.name = "BossEncounters"
+	add_child(encounters)
+	encounters.setup(self, player)
+	encounters.lankini_defeated.connect(_on_lankini_defeated)
+	# main.tscn boots straight into play (the menu is not in the flow yet), so start music here.
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_music()
 	_start_chapter(1)
-
-func _create_bosses() -> void:
-	surasa_boss = BossSprite.new()
-	surasa_boss.boss_name = "surasa"
-	surasa_boss.name = "Surasa"
-	surasa_boss.position = Vector2(350, 180)
-	surasa_boss.scale = Vector2(1.35, 1.35)
-	surasa_boss.z_index = 1
-	add_child(surasa_boss)
-
-	simhika_boss = BossSprite.new()
-	simhika_boss.boss_name = "simhika"
-	simhika_boss.name = "Simhika"
-	simhika_boss.position = Vector2(490, 180)
-	simhika_boss.scale = Vector2(1.35, 1.35)
-	simhika_boss.z_index = 1
-	add_child(simhika_boss)
-
-	lankini_boss = BossSprite.new()
-	lankini_boss.boss_name = "lankini"
-	lankini_boss.name = "Lankini"
-	lankini_boss.position = Vector2(500, 180)
-	lankini_boss.scale = Vector2(1.5, 1.5)
-	lankini_boss.z_index = 1
-	add_child(lankini_boss)
 
 func _process(delta: float) -> void:
 	hazard_cooldown = maxf(0.0, hazard_cooldown - delta)
@@ -67,40 +47,27 @@ func _process(delta: float) -> void:
 
 func _start_chapter(number: int) -> void:
 	chapter = number
-	boss_health = 0
 	dialogue_seen = false
 	guard_alert = 0.0
+	if _knockback_tween and _knockback_tween.is_valid():
+		_knockback_tween.kill()
 	player.global_position = Vector2(50, 180)
 	player.restore_health()
 	map_overlay.visible = number == 3
 	map_overlay.clear_reveal()
-	_hide_bosses()
+	encounters.reset_for_chapter(number)
 	if has_node("/root/AudioManager"):
 		get_node("/root/AudioManager").play_sfx("telegraph", -5.0)
-	if number == 1:
-		surasa_boss.visible = true
-		surasa_boss.set_state("idle")
-		simhika_boss.visible = true
-		simhika_boss.set_state("idle")
-	elif number == 2:
-		lankini_boss.visible = true
-		lankini_boss.set_state("idle")
 	GameEvents.objective_updated.emit(LEVEL_OBJECTIVES[number], false)
 	notification.notify("CHAPTER %d" % number, LEVEL_NAMES[number], LEVEL_OBJECTIVES[number])
 	if number == 1:
 		tutorial.show_preset("shrink", 5.0)
 	elif number == 2:
-		boss_health = 6
 		tutorial.show_preset("combat", 4.0)
 	elif number == 3:
 		tutorial.show_preset("stealth", 4.0)
 	elif number == 5:
 		GameEvents.encounter_feedback.emit("Hanuman's tail burns—run!")
-
-func _hide_bosses() -> void:
-	surasa_boss.visible = false
-	simhika_boss.visible = false
-	lankini_boss.visible = false
 
 func _advance_chapter() -> void:
 	GameEvents.objective_updated.emit("Complete", true)
@@ -109,28 +76,21 @@ func _advance_chapter() -> void:
 	else:
 		_show_ending()
 
-func _update_ocean(_delta: float) -> void:
-	if player.global_position.x > 310 and player.global_position.x < 410:
-		surasa_boss.play_once("special" if player.is_shrunk() else "attack", 0.7)
-	elif player.global_position.x > 450:
-		simhika_boss.play_once("special", 0.7)
-	else:
-		surasa_boss.set_state("idle")
-		simhika_boss.set_state("idle")
-	if player.global_position.x > 310 and player.global_position.x < 410 and not player.is_shrunk():
-		_warn_or_damage("Surasa's jaws close! Use [SHIFT] to shrink.")
+func _update_ocean(delta: float) -> void:
+	encounters.update_ocean(delta)
 	if player.global_position.x > 600:
 		_advance_chapter()
 
 func _update_gates(delta: float) -> void:
-	var boss := Vector2(500, 180)
-	if boss_health > 0 and player.global_position.distance_to(boss) < 110.0 and hazard_cooldown <= 0.0:
-		player.take_damage(8)
-		hazard_cooldown = 1.2
-		lankini_boss.play_once("attack", 0.75)
-		GameEvents.encounter_feedback.emit("Lankini strikes—move in, strike, retreat!")
-	if boss_health <= 0:
-		lankini_boss.set_state("defeat")
+	encounters.update_gates(delta)
+
+## Victory moment: let the defeat animation and banner play before moving on.
+func _on_lankini_defeated() -> void:
+	notification.notify("VICTORY", "LANKINI DEFEATED", "The gates of Lanka stand open.", true)
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_sfx("victory", -2.0)
+	await get_tree().create_timer(2.5).timeout
+	if chapter == 2:
 		_advance_chapter()
 
 func _update_night(delta: float) -> void:
@@ -164,16 +124,7 @@ func _update_escape(_delta: float) -> void:
 		_advance_chapter()
 
 func _on_player_attack(origin: Vector2) -> void:
-	if chapter != 2 or boss_health <= 0:
-		return
-	if origin.distance_to(Vector2(500, 180)) <= player.attack_range:
-		boss_health -= 1
-		lankini_boss.play_once("hurt", 0.55)
-		GameEvents.encounter_feedback.emit("Lankini staggered! %d strikes remain." % boss_health)
-		if boss_health <= 0:
-			notification.notify("VICTORY", "LANKINI DEFEATED", "The gates of Lanka stand open.", true)
-			if has_node("/root/AudioManager"):
-				get_node("/root/AudioManager").play_sfx("victory", -2.0)
+	encounters.on_player_attack(chapter, origin, player.attack_range)
 
 func _on_dialogue_completed() -> void:
 	if chapter == 4:
@@ -182,13 +133,29 @@ func _on_dialogue_completed() -> void:
 func _warn_or_damage(message: String) -> void:
 	if hazard_cooldown > 0.0:
 		return
-	player.take_damage(12)
 	hazard_cooldown = 1.0
-	GameEvents.encounter_feedback.emit(message)
+	hurt_player(12, player.global_position, 0.0, message)
+
+## Single entry point for hurting Hanuman: damage, flash, knockback away from `source`,
+## shake, feedback text, and a chapter restart on defeat.
+func hurt_player(amount: int, source: Vector2, knockback: float, message: String = "") -> void:
+	player.take_damage(amount)
+	VFXHitFlash.damage_flash(player)
+	GameFeel.shake(self, 4.0, 0.2)
+	if message != "":
+		GameEvents.encounter_feedback.emit(message)
 	if player.health <= 0:
 		if has_node("/root/AudioManager"):
 			get_node("/root/AudioManager").play_sfx("defeat", -1.0)
 		_start_chapter(chapter)
+		return
+	var direction: Vector2 = (player.global_position - source).normalized()
+	if knockback > 0.0 and direction != Vector2.ZERO:
+		var target: Vector2 = (player.global_position + direction * knockback).clamp(Vector2(16, 16), Vector2(624, 344))
+		if _knockback_tween and _knockback_tween.is_valid():
+			_knockback_tween.kill()
+		_knockback_tween = create_tween()
+		_knockback_tween.tween_property(player, "global_position", target, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _show_ending() -> void:
 	set_process(false)
@@ -203,18 +170,62 @@ func _draw() -> void:
 		Color("#264b31"), Color("#54231c")
 	]
 	var background: Color = backgrounds[chapter - 1]
+	if chapter == 1:
+		_draw_ocean()
+		return
 	draw_rect(Rect2(0, 0, 640, 360), background)
 	for x in range(20, 620, 60):
 		draw_circle(Vector2(x, 140 + sin(float(x)) * 18.0), 9.0, Color("#fce27c") if chapter == 4 else Color("#3b4876"))
-	if chapter == 1:
-		draw_circle(Vector2(350, 180), 38.0, Color("#6e1724"))
-		draw_string(ThemeDB.fallback_font, Vector2(318, 182), "SURASA", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
-	if chapter == 2 and boss_health > 0:
-		draw_circle(Vector2(500, 180), 22.0, Color("#ba2535"))
-		draw_string(ThemeDB.fallback_font, Vector2(450, 150), "LANKINI  %d/6" % boss_health, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+	if chapter == 2 and encounters.lankini_health > 0:
+		# Placeholder boss readout (name + health pips) until the boss bar UI lands.
+		draw_string(ThemeDB.fallback_font, Vector2(472, 124), "LANKINI", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#f7d38a"))
+		for i in BossEncounters.LANKINI_MAX_HEALTH:
+			var filled: bool = i < encounters.lankini_health
+			draw_rect(Rect2(470 + i * 10, 129, 8, 4), Color("#d8343f") if filled else Color(0, 0, 0, 0.45))
 	if chapter == 3:
 		draw_circle(Vector2(325, 180), 14.0, Color("#f7b945"))
 		draw_string(ThemeDB.fallback_font, Vector2(300, 158), "GUARD", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 	if chapter == 5:
 		for x in range(190, 520, 60):
 			draw_circle(Vector2(x, 215), 12.0, Color("#eb7e28"))
+
+## Chapter 1 backdrop: dusk sky, Lanka on the far horizon (the goal), animated sea,
+## a whirlpool under Surasa and Simhika's shadow pool. Procedural until painted art lands.
+func _draw_ocean() -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	var sky_top := Color("#0b1c33")
+	var sky_low := Color("#3a5f86")
+	for i in 14:
+		draw_rect(Rect2(0, i * 8, 640, 8), sky_top.lerp(sky_low, i / 13.0))
+	draw_rect(Rect2(0, 108, 640, 6), Color("#e8a04a").darkened(0.15))
+	# Lanka silhouette on the right horizon.
+	var lanka := Color("#14142a")
+	draw_rect(Rect2(540, 96, 100, 16), lanka)
+	for tower in [[552, 82, 10], [572, 70, 12], [596, 62, 14], [622, 76, 10]]:
+		draw_rect(Rect2(tower[0], tower[1], tower[2], 112 - tower[1]), lanka)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(tower[0] - 2, tower[1]), Vector2(tower[0] + tower[2] / 2.0, tower[1] - 10),
+			Vector2(tower[0] + tower[2] + 2, tower[1])]), lanka)
+		draw_rect(Rect2(tower[0] + tower[2] / 2.0 - 1, tower[1] + 8, 2, 3), Color("#f7c55a"))
+	# Sea: lighter near the horizon, deeper toward the viewer.
+	var sea_far := Color("#2c6c8e")
+	var sea_near := Color("#0f3150")
+	for i in 31:
+		draw_rect(Rect2(0, 114 + i * 8, 640, 8), sea_far.lerp(sea_near, i / 30.0))
+	for row in 11:
+		var y := 124.0 + row * 22.0
+		var dir := 1.0 if row % 2 == 0 else -1.0
+		var length := 8.0 + row * 1.5
+		var offset := fposmod(t * (10.0 + row * 2.0) * dir + row * 37.0, 48.0)
+		for k in range(-1, 15):
+			var x := k * 48.0 + offset
+			draw_line(Vector2(x, y), Vector2(x + length, y), Color(0.55, 0.8, 0.9, 0.35 + 0.02 * row), 1.0)
+	# Surasa's whirlpool and Simhika's shadow pool, centred under each boss.
+	draw_set_transform(Vector2(350, 214), 0.0, Vector2(1.0, 0.32))
+	for ring in 4:
+		var r := 30.0 + ring * 10.0 + sin(t * 2.0 + ring) * 2.0
+		draw_arc(Vector2.ZERO, r, t * 1.5 + ring, t * 1.5 + ring + TAU * 0.8, 32, Color(0.75, 0.9, 1.0, 0.45 - ring * 0.08), 2.0)
+	draw_set_transform(Vector2(490, 216), 0.0, Vector2(1.0, 0.3))
+	draw_circle(Vector2.ZERO, 46.0 + sin(t * 1.7) * 3.0, Color(0.12, 0.02, 0.18, 0.75))
+	draw_circle(Vector2.ZERO, 30.0, Color(0.28, 0.06, 0.36, 0.55))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

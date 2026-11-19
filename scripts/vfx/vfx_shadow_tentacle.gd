@@ -55,12 +55,11 @@ func extend_toward(positions: Array[Vector2]) -> void:
 		line.points = [Vector2.ZERO, Vector2.ZERO]
 		
 		var t := i  # capture
-		active_tween.tween_method(
-			func(prog: float):
-				tentacles[t].modulate.a = minf(prog * 2.5, 1.0)
-				tentacles[t].points[1] = target_positions[t] * prog
-			, 0.0, 1.0, extend_duration
-		)
+		# Assign the whole points array: points[1] = ... would only edit a temporary copy.
+		var grow := func(prog: float) -> void:
+			tentacles[t].modulate.a = minf(prog * 2.5, 1.0)
+			tentacles[t].points = PackedVector2Array([Vector2.ZERO, target_positions[t] * prog])
+		active_tween.tween_method(grow, 0.0, 1.0, extend_duration)
 	
 	active_tween.set_parallel(false)
 	active_tween.tween_interval(hold_duration)

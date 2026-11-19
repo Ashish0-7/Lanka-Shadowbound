@@ -38,7 +38,7 @@ const HINT_PRESETS: Dictionary = {
 	"combat": {
 		"title": "STRIKE",
 		"key": "[J / ATTACK]",
-		"desc": "Strike with Hanuman's mace to dispel Simhika's shadow grasp."
+		"desc": "Strike with Hanuman's mace. Leave the glowing ring before it lands, then hit back."
 	}
 }
 

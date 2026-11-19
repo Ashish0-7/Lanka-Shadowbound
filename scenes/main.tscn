@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://boqb1okpl5tx2"]
 
-[ext_resource type="PackedScene" path="res://scenes/levels/test_environment.tscn" id="1_environment"]
 [ext_resource type="PackedScene" path="res://scenes/player/hanuman.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="3_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="4_pause"]
@@ -14,26 +13,52 @@
 
 [node name="Main" type="Node2D" unique_id=696829217]
 
-[node name="TestEnvironment" parent="." unique_id=1621593402 instance=ExtResource("1_environment")]
-position = Vector2(0, 0)
-visible = false
-
 [node name="Hanuman" parent="." unique_id=851366360 instance=ExtResource("2_player")]
 position = Vector2(320, 180)
 
 [node name="HUD" parent="." instance=ExtResource("3_hud")]
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 640.0
+offset_bottom = 360.0
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause")]
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 640.0
+offset_bottom = 360.0
 
 [node name="DialogueBox" parent="." instance=ExtResource("5_dialogue")]
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 640.0
+offset_bottom = 360.0
 
 [node name="InteractionPrompt" parent="." instance=ExtResource("6_interaction")]
 
 [node name="ObjectiveNotification" parent="." instance=ExtResource("7_notification")]
+anchors_preset = 0
+anchor_right = 0.0
+offset_right = 640.0
 
 [node name="TutorialHint" parent="." instance=ExtResource("8_tutorial")]
+anchors_preset = 0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_top = 286.0
+offset_right = 640.0
+offset_bottom = 360.0
 
 [node name="MapRevealOverlay" parent="." visible=false instance=ExtResource("10_map_reveal")]
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 640.0
+offset_bottom = 360.0
 
 [node name="LevelTransition" parent="." instance=ExtResource("9_transition")]
 

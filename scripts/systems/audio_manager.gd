@@ -23,7 +23,8 @@ func _load_audio() -> void:
 		"objective", "alert", "boss", "dialogue_hero",
 		"dialogue_female", "dialogue_reverent", "dialogue_monster",
 		"footstep", "water", "fire", "telegraph", "victory",
-		"defeat", "transition"
+		"defeat", "transition",
+		"hiss", "bite", "whoosh", "roar", "slam", "shadow", "grab", "impact"
 	]:
 		var path: String = SFX_ROOT + "sfx_" + name + ".wav"
 		var exists: bool = ResourceLoader.exists(path)
@@ -38,14 +39,27 @@ func _create_music_player() -> void:
 	music_player = AudioStreamPlayer.new()
 	music_player.name = "MainTheme"
 	var stream: AudioStream = load(path)
+	# The WAV import has looping disabled and .import files are not tracked, so loop here.
+	if stream is AudioStreamWAV:
+		var wav := stream as AudioStreamWAV
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_begin = 0
+		wav.loop_end = int(wav.get_length() * wav.mix_rate)
 	music_player.stream = stream
 	music_player.volume_db = -12.0
 	music_player.bus = "Master"
 	add_child(music_player)
 
+const MAX_VOICES_PER_SFX := 3
+var _voices: Dictionary = {}
+
 func play_sfx(name: String, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
 	if not sfx.has(name):
 		return
+	# Cap overlapping copies of one sound so rapid repeats never pile into a wall of noise.
+	var active: Array = _voices.get(name, []).filter(func(p): return is_instance_valid(p))
+	if active.size() >= MAX_VOICES_PER_SFX:
+		active.pop_front().queue_free()
 	var player := AudioStreamPlayer.new()
 	player.stream = sfx[name]
 	player.volume_db = volume_db
@@ -54,6 +68,17 @@ func play_sfx(name: String, volume_db: float = 0.0, pitch_scale: float = 1.0) ->
 	add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
+	active.append(player)
+	_voices[name] = active
+
+## Plays a sound with slight random pitch/volume so repeated hits never sound identical.
+func play_sfx_varied(name: String, volume_db: float = 0.0, pitch_scale: float = 1.0, variation: float = 0.08) -> void:
+	play_sfx(name, volume_db + randf_range(-1.5, 1.0), pitch_scale * randf_range(1.0 - variation, 1.0 + variation))
+
+## Plays several sounds at once as one layered hit, e.g. ["whoosh", "slam", "impact"].
+func play_layered(names: Array, volume_db: float = 0.0) -> void:
+	for layer in names:
+		play_sfx_varied(layer, volume_db)
 
 func play_dialogue_blip(blip_id: String) -> void:
 	match blip_id:
@@ -102,6 +127,13 @@ func _on_stealth_changed(_alert_level: float, is_detected: bool) -> void:
 		play_sfx("alert", -1.0)
 	_was_detected = is_detected
 
+var _last_boss_sting_ms: int = -100000
+
 func _on_encounter_feedback(text: String) -> void:
-	if "Lankini" in text or "Surasa" in text or "Simhika" in text:
-		play_sfx("boss", -4.0, 0.9)
+	# Encounters now play their own layered SFX, so the generic sting is rate-limited.
+	if not ("Lankini" in text or "Surasa" in text or "Simhika" in text):
+		return
+	if Time.get_ticks_msec() - _last_boss_sting_ms < 4000:
+		return
+	_last_boss_sting_ms = Time.get_ticks_msec()
+	play_sfx("boss", -4.0, 0.9)

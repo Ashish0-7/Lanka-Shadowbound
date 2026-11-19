@@ -18,7 +18,8 @@ var notification_queue: Array[Dictionary] = []
 var is_displaying: bool = false
 var active_tween: Tween
 
-const TARGET_Y: float = 16.0
+## Rests below the HUD corner panels (which reach y≈110) so the two never overlap.
+const TARGET_Y: float = 118.0
 const HIDDEN_Y: float = -70.0
 
 func _ready() -> void:
@@ -81,20 +82,17 @@ func _animate_banner() -> void:
 	banner_panel.modulate.a = 0.0
 	
 	active_tween = create_tween()
-	# Slide in and fade
-	active_tween.set_parallel(true)
+	# Slide in and fade. parallel() joins only the next tweener to the current step;
+	# set_parallel(true) here previously made the slide-out run alongside the hold.
 	active_tween.tween_property(banner_panel, "position:y", TARGET_Y, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	active_tween.tween_property(banner_panel, "modulate:a", 1.0, 0.25)
-	active_tween.set_parallel(false)
-	
+	active_tween.parallel().tween_property(banner_panel, "modulate:a", 1.0, 0.25)
+
 	# Display hold duration
 	active_tween.tween_interval(UIConstants.NOTIFICATION_DISPLAY_DURATION)
-	
+
 	# Slide out and fade
-	active_tween.set_parallel(true)
 	active_tween.tween_property(banner_panel, "position:y", HIDDEN_Y, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	active_tween.tween_property(banner_panel, "modulate:a", 0.0, 0.25)
-	active_tween.set_parallel(false)
-	
+	active_tween.parallel().tween_property(banner_panel, "modulate:a", 0.0, 0.25)
+
 	# Next queued notification
 	active_tween.tween_callback(_process_next_notification)
