@@ -56,6 +56,120 @@ func _bind_to_game_events() -> void:
 	if bus.has_signal("stealth_alert_level_changed"):
 		bus.connect("stealth_alert_level_changed", Callable(self, "set_stealth_alert"))
 
+	if bus.has_signal("devotion_changed"):
+		_build_devotion_bar()
+		bus.connect("devotion_changed", Callable(self, "set_devotion"))
+
+	# Encounter call-outs ("Surasa's jaws open — shrink!", "Lankini staggered!")
+	if bus.has_signal("encounter_feedback"):
+		_build_feedback_toast()
+		bus.connect("encounter_feedback", Callable(self, "show_feedback"))
+
+# ==============================================================================
+# DEVOTION METER  (fills from kills and boss hits; full → [Q] Jai Shri Ram)
+# ==============================================================================
+
+var _devotion_panel: PanelContainer
+var _devotion_bar: ProgressBar
+var _devotion_label: Label
+var _devotion_full := false
+
+func _build_devotion_bar() -> void:
+	_devotion_panel = PanelContainer.new()
+	_devotion_panel.name = "DevotionPanel"
+	_devotion_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_devotion_panel.position = Vector2(10, 114)
+	_devotion_panel.custom_minimum_size = Vector2(166, 0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.06, 0.12, 0.82)
+	style.border_color = UIConstants.COLOR_DIVINE_GOLD
+	style.set_border_width_all(1)
+	style.set_content_margin_all(4)
+	_devotion_panel.add_theme_stylebox_override("panel", style)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	_devotion_label = Label.new()
+	_devotion_label.text = "DEVOTION"
+	_devotion_label.add_theme_font_size_override("font_size", UIConstants.FONT_SIZE_SMALL)
+	_devotion_label.add_theme_color_override("font_color", UIConstants.COLOR_GOLDEN_EMBER)
+	_devotion_bar = ProgressBar.new()
+	_devotion_bar.show_percentage = false
+	_devotion_bar.custom_minimum_size = Vector2(156, 5)
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = UIConstants.COLOR_MIDNIGHT_INDIGO
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = UIConstants.COLOR_GOLDEN_EMBER
+	_devotion_bar.add_theme_stylebox_override("background", bg)
+	_devotion_bar.add_theme_stylebox_override("fill", fill)
+	box.add_child(_devotion_label)
+	box.add_child(_devotion_bar)
+	_devotion_panel.add_child(box)
+	add_child(_devotion_panel)
+	set_devotion(0.0, 100.0)
+
+func set_devotion(value: float, max_value: float) -> void:
+	if _devotion_bar == null:
+		return
+	_devotion_bar.max_value = max_value
+	_devotion_bar.value = value
+	_devotion_full = value >= max_value
+	_devotion_label.text = "[Q]  JAI SHRI RAM!" if _devotion_full else "DEVOTION"
+
+func _process(_delta: float) -> void:
+	if _devotion_panel and _devotion_full:
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * 8.0)
+		_devotion_panel.modulate = Color.WHITE.lerp(Color(1.4, 1.25, 0.8), pulse)
+		_devotion_label.add_theme_color_override("font_color", UIConstants.COLOR_DIVINE_GOLD.lerp(Color.WHITE, pulse))
+	elif _devotion_panel:
+		_devotion_panel.modulate = Color.WHITE
+		_devotion_label.add_theme_color_override("font_color", UIConstants.COLOR_GOLDEN_EMBER)
+
+# ==============================================================================
+# ENCOUNTER FEEDBACK TOAST
+# ==============================================================================
+
+var _feedback_panel: PanelContainer
+var _feedback_label: Label
+var _feedback_tween: Tween
+
+func _build_feedback_toast() -> void:
+	_feedback_panel = PanelContainer.new()
+	_feedback_panel.name = "FeedbackToast"
+	_feedback_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.06, 0.12, 0.82)
+	style.border_color = UIConstants.COLOR_DIVINE_GOLD
+	style.set_border_width_all(1)
+	style.set_content_margin_all(5)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	_feedback_panel.add_theme_stylebox_override("panel", style)
+	_feedback_label = Label.new()
+	_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_feedback_label.add_theme_font_size_override("font_size", 10)
+	_feedback_label.add_theme_color_override("font_color", UIConstants.COLOR_IVORY_LIGHT)
+	_feedback_panel.add_child(_feedback_label)
+	add_child(_feedback_panel)
+	_feedback_panel.modulate.a = 0.0
+	_feedback_panel.visible = false
+
+## Shows a short centred call-out just above the tutorial strip, replacing any current one.
+func show_feedback(text: String) -> void:
+	if _feedback_panel == null:
+		return
+	_feedback_label.text = text
+	_feedback_panel.visible = true
+	_feedback_panel.reset_size()
+	var panel_size := _feedback_panel.get_combined_minimum_size()
+	_feedback_panel.position = Vector2((size.x - panel_size.x) * 0.5, 258.0)
+	if _feedback_tween and _feedback_tween.is_valid():
+		_feedback_tween.kill()
+	_feedback_tween = create_tween()
+	_feedback_tween.tween_property(_feedback_panel, "modulate:a", 1.0, 0.12)
+	_feedback_tween.tween_interval(2.2)
+	_feedback_tween.tween_property(_feedback_panel, "modulate:a", 0.0, 0.4)
+	_feedback_tween.tween_callback(func(): _feedback_panel.visible = false)
+
 # ==============================================================================
 # STATE CONSUMER APIS (Called by GameEvents or Mock Harness)
 # ==============================================================================

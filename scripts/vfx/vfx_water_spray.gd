@@ -46,3 +46,5 @@ func _configure_particles() -> void:
 func play() -> void:
 	restart()
 	emitting = true
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_sfx("water", -4.0)

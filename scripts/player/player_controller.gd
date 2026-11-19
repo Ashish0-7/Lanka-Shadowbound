@@ -5,7 +5,31 @@ extends CharacterBody2D
 @export var max_health: int = 100
 @export var attack_range: float = 62.0
 
+## Emitted on the IMPACT frame of a swing (after anticipation), not on the key press.
 signal attack_performed(origin: Vector2)
+## Emitted when a swing begins, for presentation. combo_step is 1, 2, or 3 (heavy finisher).
+signal attack_started(facing: String, combo_step: int)
+
+## Anticipation before the hit lands; the heavy third swing winds up longer.
+const ATTACK_WINDUP := 0.08
+const HEAVY_WINDUP := 0.16
+const ATTACK_POSE_TIME := 0.3
+const HEAVY_POSE_TIME := 0.42
+const COMBO_WINDOW := 0.55
+var _pending_hit: float = -1.0
+var _combo_step: int = 0
+var _combo_timer: float = 0.0
+
+## Hold [J] to charge, release to unleash a 360° gada spin that hits everything around Hanuman.
+signal charge_ready()
+signal spin_performed(origin: Vector2)
+const SPIN_CHARGE := 0.45
+var charge_time: float = 0.0
+var _charged: bool = false
+
+## "Jai Shri Ram!" giant form: larger, invulnerable, devastating swings.
+const GIANT_SCALE := 1.8
+var giant_remaining: float = 0.0
 
 var health: int
 var shrink_remaining: float = 0.0
@@ -35,6 +59,7 @@ const SHRINK_COOLDOWN := 5.0
 var animation_timer: float = 0.0
 var attack_timer: float = 0.0
 var facing: String = "down"
+var footstep_timer: float = 0.0
 
 func _load_walk_textures(direction: String) -> Array[Texture2D]:
 	var textures: Array[Texture2D] = []
@@ -42,7 +67,11 @@ func _load_walk_textures(direction: String) -> Array[Texture2D]:
 		textures.append(load("res://assets/characters/hanuman/char_hanuman_walk_%s_%02d.png" % [direction, frame]))
 	return textures
 
+## Maze crevices live on this physics layer; Hanuman only collides with them at full size.
+const CREVICE_LAYER := 2
+
 func _ready() -> void:
+	set_collision_mask_value(CREVICE_LAYER, true)
 	health = max_health
 	GameEvents.player_health_changed.emit(health, max_health)
 	GameEvents.shrink_ability_updated.emit(false, 0.0, SHRINK_COOLDOWN, 0.0, SHRINK_DURATION)
@@ -50,28 +79,73 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	var input_direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_direction * (move_speed * (0.72 if is_shrunk() else 1.0))
+	set_collision_mask_value(CREVICE_LAYER, not is_shrunk())
 	move_and_slide()
 	global_position.x = clampf(global_position.x, 16.0, 624.0)
 	global_position.y = clampf(global_position.y, 16.0, 344.0)
 	_update_shrink(delta)
+	_update_attack(delta)
+	_update_charge(delta)
+	giant_remaining = maxf(0.0, giant_remaining - delta)
 	_update_sprite(delta, input_direction)
+	if is_giant():
+		sprite.scale = Vector2.ONE * GIANT_SCALE
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ability") and shrink_cooldown <= 0.0:
+	if event.is_action_released("attack"):
+		if _charged:
+			attack_timer = 0.4
+			spin_performed.emit(global_position)
+		_charged = false
+		charge_time = 0.0
+	if event.is_action_pressed("ability") and shrink_cooldown <= 0.0 and not is_giant():
 		shrink_remaining = SHRINK_DURATION
 		shrink_cooldown = SHRINK_COOLDOWN
 		GameEvents.shrink_ability_updated.emit(true, 0.0, SHRINK_COOLDOWN, shrink_remaining, SHRINK_DURATION)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("attack"):
-		attack_timer = 0.18
-		attack_performed.emit(global_position)
+	elif event.is_action_pressed("attack") and _pending_hit < 0.0:
+		# Presses during anticipation are ignored; presses soon after a hit chain the combo.
+		_combo_step = (_combo_step % 3) + 1 if _combo_timer > 0.0 else 1
+		var heavy := _combo_step == 3
+		_pending_hit = HEAVY_WINDUP if heavy else ATTACK_WINDUP
+		attack_timer = HEAVY_POSE_TIME if heavy else ATTACK_POSE_TIME
+		_combo_timer = attack_timer + COMBO_WINDOW
+		attack_started.emit(facing, _combo_step)
+		if has_node("/root/AudioManager"):
+			get_node("/root/AudioManager").play_sfx_varied("attack", -4.0, 0.9 if heavy else 1.0)
 		get_viewport().set_input_as_handled()
+
+func _update_attack(delta: float) -> void:
+	_combo_timer = maxf(0.0, _combo_timer - delta)
+	if _pending_hit < 0.0:
+		return
+	_pending_hit -= delta
+	if _pending_hit <= 0.0:
+		_pending_hit = -1.0
+		attack_performed.emit(global_position)
+
+func _update_charge(delta: float) -> void:
+	if not Input.is_action_pressed("attack"):
+		charge_time = 0.0
+		_charged = false
+		return
+	charge_time += delta
+	if charge_time >= SPIN_CHARGE and not _charged:
+		_charged = true
+		charge_ready.emit()
+
+func is_giant() -> bool:
+	return giant_remaining > 0.0
+
+func activate_giant(seconds: float) -> void:
+	giant_remaining = seconds
+	shrink_remaining = 0.0
 
 func _update_sprite(delta: float, input_direction: Vector2) -> void:
 	if attack_timer > 0.0:
 		attack_timer = maxf(0.0, attack_timer - delta)
 		sprite.texture = strike_textures[facing]
-		sprite.scale = Vector2.ONE
+		sprite.scale = Vector2(0.5, 0.5) if is_shrunk() else Vector2.ONE
 	elif is_shrunk():
 		sprite.texture = idle_textures[facing]
 		sprite.scale = Vector2(0.5, 0.5)
@@ -89,6 +163,11 @@ func _update_sprite(delta: float, input_direction: Vector2) -> void:
 			var frame: int = mini(int(animation_timer * 8.0) % 8, 7)
 			var walk_frames: Array = walk_textures[facing]
 			sprite.texture = walk_frames[frame]
+			footstep_timer -= delta
+			if footstep_timer <= 0.0:
+				footstep_timer = 0.24
+				if has_node("/root/AudioManager"):
+					get_node("/root/AudioManager").play_sfx("footstep", -11.0, 0.92)
 		else:
 			animation_timer = 0.0
 			sprite.texture = idle_textures[facing]
@@ -105,6 +184,8 @@ func is_shrunk() -> bool:
 	return shrink_remaining > 0.0
 
 func take_damage(amount: int) -> void:
+	if is_giant():
+		return
 	health = maxi(0, health - amount)
 	GameEvents.player_health_changed.emit(health, max_health)
 	if health <= 0:

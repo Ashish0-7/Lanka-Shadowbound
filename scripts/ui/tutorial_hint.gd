@@ -32,13 +32,13 @@ const HINT_PRESETS: Dictionary = {
 	},
 	"stealth": {
 		"title": "SHADOW INFILTRATION",
-		"key": "[C / CROUCH]",
-		"desc": "Crouch in palace shadows. Keep clear of the Rakshasa guards' lantern light."
+		"key": "[WASD]",
+		"desc": "Stay out of the guard's lantern light. Palace walls block his view — use them as cover."
 	},
 	"combat": {
 		"title": "STRIKE",
 		"key": "[J / ATTACK]",
-		"desc": "Strike with Hanuman's mace to dispel Simhika's shadow grasp."
+		"desc": "Strike with Hanuman's mace. Leave the glowing ring before it lands, then hit back."
 	}
 }
 

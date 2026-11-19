@@ -12,6 +12,7 @@ signal dialogue_requested(sequence: Array[Dictionary])
 signal map_reveal_updated(cells: Array[Vector2i])
 signal map_cell_revealed(cell: Vector2i)
 signal encounter_feedback(text: String)
+signal devotion_changed(value: float, max_value: float)
 
 func request_dialogue(sequence: Array[Dictionary]) -> void:
 	dialogue_requested.emit(sequence)
