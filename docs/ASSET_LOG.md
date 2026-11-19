@@ -7,8 +7,11 @@ All assets must be verified for commercial/hackathon use under permitted licence
 
 | Path | Category | Source / Creator | Link / Provenance | Licence | Attribution Required / Text | Date Added | Status |
 |:---|:---:|:---|:---|:---:|:---|:---:|:---:|
-| `assets/ui/fonts/pixelify_sans.ttf` | UI Font | Stefie Justprince (Google Fonts) | https://fonts.google.com/specimen/Pixelify+Sans | SIL OFL 1.1 | Copyright 2023 The Pixelify Sans Project Authors | 2026-11-19 | Planned / In-Progress |
-| `assets/ui/main_theme.tres` | UI Theme | Member 3 (Original) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | In-Progress |
+| `assets/ui/fonts/pixelify_sans.ttf` | UI Font | Stefie Justprince (Google Fonts) | https://fonts.google.com/specimen/Pixelify+Sans | SIL OFL 1.1 | Copyright 2023 The Pixelify Sans Project Authors | 2026-11-19 | Verified / Integrated |
+| `assets/ui/main_theme.tres` | UI Theme | Member 3 (Original) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Created / Active |
+| `assets/ui/style_panel_indigo.tres` | UI StyleBox | Member 3 (Original) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Created / Active |
+| `assets/ui/style_button_*.tres` | UI StyleBox | Member 3 (Original) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Created / Active |
+| `assets/ui/style_progress_*.tres` | UI StyleBox | Member 3 (Original) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Created / Active |
 | `assets/ui/icons/` | UI Icons | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Planned |
 | `assets/characters/hanuman/` | Character Art | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Planned |
 | `assets/characters/enemies/` | Character Art | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Planned |
