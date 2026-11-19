@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="1_controller"]
 [ext_resource type="Texture2D" path="res://assets/characters/hanuman/char_hanuman_idle_down.png" id="2_idle"]
+[ext_resource type="Script" path="res://scripts/player/hanuman_presentation.gd" id="3_presentation"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_body"]
 radius = 7.0
@@ -26,3 +27,6 @@ limit_left = 0
 limit_top = 0
 limit_right = 640
 limit_bottom = 360
+
+[node name="Presentation" type="Node2D" parent="."]
+script = ExtResource("3_presentation")

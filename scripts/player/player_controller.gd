@@ -5,7 +5,20 @@ extends CharacterBody2D
 @export var max_health: int = 100
 @export var attack_range: float = 62.0
 
+## Emitted on the IMPACT frame of a swing (after anticipation), not on the key press.
 signal attack_performed(origin: Vector2)
+## Emitted when a swing begins, for presentation. combo_step is 1, 2, or 3 (heavy finisher).
+signal attack_started(facing: String, combo_step: int)
+
+## Anticipation before the hit lands; the heavy third swing winds up longer.
+const ATTACK_WINDUP := 0.08
+const HEAVY_WINDUP := 0.16
+const ATTACK_POSE_TIME := 0.3
+const HEAVY_POSE_TIME := 0.42
+const COMBO_WINDOW := 0.55
+var _pending_hit: float = -1.0
+var _combo_step: int = 0
+var _combo_timer: float = 0.0
 
 var health: int
 var shrink_remaining: float = 0.0
@@ -55,6 +68,7 @@ func _physics_process(delta: float) -> void:
 	global_position.x = clampf(global_position.x, 16.0, 624.0)
 	global_position.y = clampf(global_position.y, 16.0, 344.0)
 	_update_shrink(delta)
+	_update_attack(delta)
 	_update_sprite(delta, input_direction)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -63,18 +77,32 @@ func _unhandled_input(event: InputEvent) -> void:
 		shrink_cooldown = SHRINK_COOLDOWN
 		GameEvents.shrink_ability_updated.emit(true, 0.0, SHRINK_COOLDOWN, shrink_remaining, SHRINK_DURATION)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("attack"):
-		attack_timer = 0.18
-		attack_performed.emit(global_position)
+	elif event.is_action_pressed("attack") and _pending_hit < 0.0:
+		# Presses during anticipation are ignored; presses soon after a hit chain the combo.
+		_combo_step = (_combo_step % 3) + 1 if _combo_timer > 0.0 else 1
+		var heavy := _combo_step == 3
+		_pending_hit = HEAVY_WINDUP if heavy else ATTACK_WINDUP
+		attack_timer = HEAVY_POSE_TIME if heavy else ATTACK_POSE_TIME
+		_combo_timer = attack_timer + COMBO_WINDOW
+		attack_started.emit(facing, _combo_step)
 		if has_node("/root/AudioManager"):
-			get_node("/root/AudioManager").play_sfx("attack", -2.0)
+			get_node("/root/AudioManager").play_sfx_varied("attack", -4.0, 0.9 if heavy else 1.0)
 		get_viewport().set_input_as_handled()
+
+func _update_attack(delta: float) -> void:
+	_combo_timer = maxf(0.0, _combo_timer - delta)
+	if _pending_hit < 0.0:
+		return
+	_pending_hit -= delta
+	if _pending_hit <= 0.0:
+		_pending_hit = -1.0
+		attack_performed.emit(global_position)
 
 func _update_sprite(delta: float, input_direction: Vector2) -> void:
 	if attack_timer > 0.0:
 		attack_timer = maxf(0.0, attack_timer - delta)
 		sprite.texture = strike_textures[facing]
-		sprite.scale = Vector2.ONE
+		sprite.scale = Vector2(0.5, 0.5) if is_shrunk() else Vector2.ONE
 	elif is_shrunk():
 		sprite.texture = idle_textures[facing]
 		sprite.scale = Vector2(0.5, 0.5)
