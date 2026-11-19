@@ -8,7 +8,7 @@
 script = ExtResource("1_script")
 
 [node name="DummyInteractable" type="Node2D" parent="."]
-position = Vector2(240, 160)
+position = Vector2(320, 200)
 
 [node name="VisualMarker" type="ColorRect" parent="DummyInteractable"]
 offset_left = -8.0
