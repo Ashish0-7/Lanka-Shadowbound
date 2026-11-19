@@ -1,0 +1,43 @@
+[gd_resource type="Theme" load_steps=10 format=3]
+
+[ext_resource type="FontFile" path="res://assets/ui/fonts/pixelify_sans.ttf" id="1_font"]
+[ext_resource type="StyleBox" path="res://assets/ui/style_panel_indigo.tres" id="2_panel"]
+[ext_resource type="StyleBox" path="res://assets/ui/style_button_normal.tres" id="3_btn_normal"]
+[ext_resource type="StyleBox" path="res://assets/ui/style_button_hover.tres" id="4_btn_hover"]
+[ext_resource type="StyleBox" path="res://assets/ui/style_button_pressed.tres" id="5_btn_pressed"]
+[ext_resource type="StyleBox" path="res://assets/ui/style_button_focus.tres" id="6_btn_focus"]
+[ext_resource type="StyleBox" path="res://assets/ui/style_button_disabled.tres" id="7_btn_disabled"]
+[ext_resource type="StyleBox" path="res://assets/ui/style_progress_bg.tres" id="8_prog_bg"]
+[ext_resource type="StyleBox" path="res://assets/ui/style_progress_fill.tres" id="9_prog_fill"]
+
+[resource]
+default_font = ExtResource("1_font")
+default_font_size = 12
+Button/colors/font_color = Color(0.831373, 0.756863, 0.611765, 1)
+Button/colors/font_disabled_color = Color(0.345098, 0.321569, 0.4, 1)
+Button/colors/font_focus_color = Color(0.984314, 0.956863, 0.886275, 1)
+Button/colors/font_hover_color = Color(0.984314, 0.956863, 0.886275, 1)
+Button/colors/font_pressed_color = Color(0.988235, 0.886275, 0.486275, 1)
+Button/font_sizes/font_size = 14
+Button/fonts/font = ExtResource("1_font")
+Button/styles/disabled = ExtResource("7_btn_disabled")
+Button/styles/focus = ExtResource("6_btn_focus")
+Button/styles/hover = ExtResource("4_btn_hover")
+Button/styles/normal = ExtResource("3_btn_normal")
+Button/styles/pressed = ExtResource("5_btn_pressed")
+Label/colors/font_color = Color(0.984314, 0.956863, 0.886275, 1)
+Label/colors/font_shadow_color = Color(0.0392157, 0.0313726, 0.0784314, 1)
+Label/constants/shadow_offset_x = 1
+Label/constants/shadow_offset_y = 1
+Label/font_sizes/font_size = 12
+Label/fonts/font = ExtResource("1_font")
+Panel/styles/panel = ExtResource("2_panel")
+PanelContainer/styles/panel = ExtResource("2_panel")
+ProgressBar/colors/font_color = Color(0.984314, 0.956863, 0.886275, 1)
+ProgressBar/font_sizes/font_size = 10
+ProgressBar/fonts/font = ExtResource("1_font")
+ProgressBar/styles/background = ExtResource("8_prog_bg")
+ProgressBar/styles/fill = ExtResource("9_prog_fill")
+RichTextLabel/colors/default_color = Color(0.984314, 0.956863, 0.886275, 1)
+RichTextLabel/font_sizes/normal_font_size = 12
+RichTextLabel/fonts/normal_font = ExtResource("1_font")
