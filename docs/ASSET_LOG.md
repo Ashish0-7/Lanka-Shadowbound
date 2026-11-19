@@ -12,6 +12,9 @@ All assets must be verified for commercial/hackathon use under permitted licence
 | `assets/ui/style_panel_indigo.tres` | UI StyleBox | Member 3 (Original) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Created / Active |
 | `assets/ui/style_button_*.tres` | UI StyleBox | Member 3 (Original) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Created / Active |
 | `assets/ui/style_progress_*.tres` | UI StyleBox | Member 3 (Original) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Created / Active |
+| `assets/ui/portraits/portrait_hanuman.png` | UI Portrait Art | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Verified / Integrated |
+| `assets/ui/portraits/portrait_mandodari.png` | UI Portrait Art | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Verified / Integrated |
+| `assets/ui/portraits/portrait_sita.png` | UI Portrait Art | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Verified / Integrated |
 | `assets/ui/icons/` | UI Icons | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Planned |
 | `assets/characters/hanuman/` | Character Art | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Planned |
 | `assets/characters/enemies/` | Character Art | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Planned |
