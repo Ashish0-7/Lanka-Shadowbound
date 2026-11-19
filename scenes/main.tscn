@@ -19,7 +19,7 @@ position = Vector2(0, 0)
 visible = false
 
 [node name="Hanuman" parent="." unique_id=851366360 instance=ExtResource("2_player")]
-position = Vector2(640, 360)
+position = Vector2(320, 180)
 
 [node name="HUD" parent="." instance=ExtResource("3_hud")]
 
