@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3 uid="uid://vfx_fire"]
+
+[ext_resource type="Script" path="res://scripts/vfx/vfx_fire.gd" id="1_fire"]
+
+[node name="VFXFire" type="CPUParticles2D"]
+script = ExtResource("1_fire")
+amount = 24
+lifetime = 0.6
+one_shot = false
+explosiveness = 0.0
+emission_shape = 0
+direction = Vector2(0, -1)
+spread = 15.0
+gravity = Vector2(0, -20)
+initial_velocity_min = 30.0
+initial_velocity_max = 60.0
+color = Color(0.988, 0.502, 0.047, 1)

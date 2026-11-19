@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3 uid="uid://vfx_shadow_tentacle"]
+
+[ext_resource type="Script" path="res://scripts/vfx/vfx_shadow_tentacle.gd" id="1_tentacle"]
+
+[sub_resource type="Line2D" id="line2d_1"]
+width = 3.0
+default_color = Color(0.047, 0.027, 0.098, 1)
+
+[sub_resource type="Line2D" id="line2d_2"]
+width = 3.0
+default_color = Color(0.047, 0.027, 0.098, 1)
+
+[sub_resource type="Line2D" id="line2d_3"]
+width = 3.0
+default_color = Color(0.047, 0.027, 0.098, 1)
+
+[node name="VFXShadowTentacle" type="Node2D"]
+script = ExtResource("1_tentacle")
+
+[node name="Tentacle1" type="Line2D" parent="."]
+points = PackedVector2Array(0, 0)
+width = 3.0
+default_color = Color(0.047, 0.027, 0.098, 1)
+
+[node name="Tentacle2" type="Line2D" parent="."]
+points = PackedVector2Array(0, 0)
+width = 3.0
+default_color = Color(0.047, 0.027, 0.098, 1)
+
+[node name="Tentacle3" type="Line2D" parent="."]
+points = PackedVector2Array(0, 0)
+width = 3.0
+default_color = Color(0.047, 0.027, 0.098, 1)

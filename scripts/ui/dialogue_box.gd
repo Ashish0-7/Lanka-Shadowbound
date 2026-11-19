@@ -8,6 +8,9 @@ extends Control
 signal line_started(line_index: int)
 signal line_finished(line_index: int)
 signal dialogue_completed()
+## Presentation-only hook. An audio owner may connect this to play the named blip.
+## The dialogue box does not own audio playback or authoritative story state.
+signal audio_blip_requested(blip_id: String)
 
 @onready var portrait_rect: TextureRect = %PortraitRect
 @onready var speaker_name_label: Label = %SpeakerNameLabel
@@ -27,6 +30,10 @@ var pulse_tween: Tween
 func _ready() -> void:
 	hide()
 	advance_prompt.visible = false
+	if has_node("/root/GameEvents"):
+		var events: Node = get_node("/root/GameEvents")
+		if events.has_signal("dialogue_requested"):
+			events.connect("dialogue_requested", Callable(self, "start_dialogue"))
 
 func _process(delta: float) -> void:
 	if not is_typing:
@@ -90,6 +97,9 @@ func _display_current_line() -> void:
 	advance_prompt.visible = false
 	
 	line_started.emit(current_line_index)
+	var blip_id: String = line.get("blip_sound", "")
+	if not blip_id.is_empty():
+		audio_blip_requested.emit(blip_id)
 
 func _finish_typing() -> void:
 	is_typing = false

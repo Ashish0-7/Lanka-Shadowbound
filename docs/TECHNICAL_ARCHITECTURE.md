@@ -70,7 +70,7 @@ Agents must not independently invent incompatible contracts.
 Initial perspective is top-down 2D. `Camera2D` is a child of the player and follows with position smoothing; its limits match the initial 1280 × 720 test environment. Camera behavior may be refined with level geometry, but must remain consistent with the approved perspective.
 
 ## Input map
-Movement actions are defined in `project.godot`: `move_up`, `move_down`, `move_left`, and `move_right`, each bound to both WASD and arrow keys. The prototype reads these actions through `Input.get_vector`; do not add hard-coded movement key checks. Interact, primary action/attack, ability, dodge and pause remain to be defined before those features are implemented.
+Movement actions are defined in `project.godot`: `move_up`, `move_down`, `move_left`, and `move_right`, each bound to both WASD and arrow keys. The prototype reads these actions through `Input.get_vector`; do not add hard-coded movement key checks. `interact` is bound to E/Space, `pause` to Escape, `attack` to J, and `ability` to Shift. Dodge remains to be defined before it is implemented.
 
 ## Asset/pixel pipeline
 Member 3 proposes and Member 1 approves:
