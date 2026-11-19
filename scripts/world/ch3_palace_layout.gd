@@ -2,6 +2,7 @@ extends "res://scripts/world/layout_base.gd"
 
 signal mandodari_reached
 var _misunderstanding_triggered := false
+var _dialogue_box: DialogueBox
 
 func _ready() -> void:
 	ground_color = Color("191a35")
@@ -10,6 +11,7 @@ func _ready() -> void:
 	super._ready()
 	_add_partition(430.0)
 	_add_partition(830.0)
+	_add_dialogue_box()
 	_add_mandodari()
 
 func _draw() -> void:
@@ -28,6 +30,12 @@ func _add_partition(x: float) -> void:
 		collision.shape = rect
 		wall.add_child(collision)
 		add_child(wall)
+
+func _add_dialogue_box() -> void:
+	var ui_layer := CanvasLayer.new()
+	add_child(ui_layer)
+	_dialogue_box = preload("res://scenes/ui/dialogue_box.tscn").instantiate() as DialogueBox
+	ui_layer.add_child(_dialogue_box)
 
 func _add_mandodari() -> void:
 	var npc := Node2D.new()
@@ -54,3 +62,4 @@ func _on_mandodari_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player") and not _misunderstanding_triggered:
 		_misunderstanding_triggered = true
 		mandodari_reached.emit()
+		_dialogue_box.play_mandodari_misunderstanding_scene()
