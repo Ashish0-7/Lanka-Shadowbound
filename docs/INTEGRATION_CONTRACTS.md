@@ -12,14 +12,38 @@ Agents must not assume proposed names are implemented APIs until Member 1 confir
 - Check the repository before assuming a node path, autoload or method exists.
 - Shared-contract changes require agreement from affected members and an update to this file.
 
-## Player contract — TBD
-Record canonical player scene, movement ownership, abilities and invocation, health/damage interface, animation states, interaction entry point and player-state signals. Member 2 owns ability/combat behaviour; Member 1 owns shared architecture/integration.
+## Player contract — initial movement foundation
+- Canonical prototype scene: `res://scenes/player/hanuman.tscn`, root node `Hanuman` (`CharacterBody2D`).
+- Controller script: `res://scripts/player/player_controller.gd`; movement ownership and initial integration remain with Member 1, coordinated with Member 2 before adding ability/combat behavior.
+- Movement speed is the exported `move_speed` property (initial default 120 pixels/second).
+- Input actions: `move_up`, `move_down`, `move_left`, `move_right`; each supports WASD and arrow keys. The controller uses `Input.get_vector`, so diagonal movement is normalized.
+- Collision: root `CharacterBody2D` on layer/mask 1 with a child `CollisionShape2D` capsule. Level geometry supplies `StaticBody2D` collisions.
+- Camera: child `Camera2D` follows the player with smoothing, bounded to the current test level.
+- The player presentation uses the original Hanuman PNG set from `assets/characters/hanuman/`. The controller swaps idle, run, attack and shrunk textures and flips the sprite for left/right movement. Health, damage, combat, shrink timing and ability events use the existing contract signals.
 
 ## Encounter contract — TBD
 Each encounter needs a clear lifecycle: initialise/reset, become active, report success/defeat, report failure/retry if applicable, and communicate completion to level/story progression. Member 2 owns mechanics; Member 4 owns placement/layout/story sequence; Member 1 approves interface.
 
-## Interactables and dialogue — TBD
+## Interactables and dialogue
 Define player detection, interaction prompt, trigger method, dialogue data interface and completion callback/signal. Member 4 owns narrative content/triggers; Member 3 owns presentation; Member 1 approves interface.
+
+### Member 3 Dialogue Presentation Specification
+* **Data Schema (Dictionary):**
+  ```gdscript
+  {
+      "speaker_name": String,      # e.g., "Hanuman", "Mandodari", "Sita", "Surasa"
+      "portrait_path": String,     # e.g., "res://assets/ui/portraits/portrait_hanuman.png"
+      "text": String,              # Dialogue content
+      "blip_sound": String,        # "hero", "female_melodic", "reverent", "monster"
+      "auto_advance_time": float   # 0.0 = manual press to advance, > 0.0 = auto
+  }
+  ```
+* **Signals Consumed / Emitted by UI:**
+  - `start_dialogue(sequence: Array[Dictionary])`
+  - `signal line_started(line_index: int)`
+  - `signal line_finished(line_index: int)`
+  - `signal dialogue_completed()`
+  - Runtime request source: `GameEvents.dialogue_requested(sequence: Array[Dictionary])`.
 
 ## Objectives and story flags — TBD
 Define canonical current level, current objective, completed story events, key progression flags (including ring delivery and level completion), and checkpoint/restart state. Avoid duplicate conflicting progression state.
@@ -27,11 +51,27 @@ Define canonical current level, current objective, completed story events, key p
 ## Level transitions — TBD
 Define a single mechanism for next level, restart/load, passing story/checkpoint state, transition presentation and invalid destination handling. Member 1 owns mechanism; Member 4 owns order/completion triggers; Member 3 owns presentation.
 
-## HUD and feedback — TBD
+## HUD and feedback
 Define source/signals for health, abilities, interaction prompts, objectives, stealth/alert state, map reveal and boss state. Member 3 owns UI presentation, not authoritative gameplay state.
 
-## Stealth and map reveal — TBD
+### Member 3 HUD Presentation Specification
+* **Health Updates:**
+  - `player_health_changed(current: int, max_hp: int)`
+  - `player_died()`
+* **Shrink Ability State:**
+  - `shrink_ability_updated(is_active: bool, cooldown_remaining: float, cooldown_max: float, duration_remaining: float, duration_max: float)`
+* **Objective Updates:**
+  - `objective_updated(text: String, is_complete: bool)`
+* **Stealth Alert Gauge (Lanka at Night):**
+  - `stealth_alert_level_changed(alert_level: float, is_detected: bool)`
+
+### Approved initial display-event autoload
+`GameEvents` is the display-facing autoload at `res://scripts/systems/game_events.gd`. It exposes the HUD signals above, `dialogue_requested(sequence: Array[Dictionary])`, `map_reveal_updated(cells: Array[Vector2i])`, and `map_cell_revealed(cell: Vector2i)`. It is not a source of truth: Members 2 and 4 emit events only after their own authoritative gameplay/progression state changes.
+
+## Stealth and map reveal — initial presentation contract
 Member 4 owns patrol placement, layout and stealth progression. Member 2 owns agreed detection/alert logic. Member 3 owns map/alert presentation. Define one source of truth for explored areas and alert state.
+
+Member 4 supplies the current explored grid through `GameEvents.update_map_reveal(cells)` or incremental updates through `GameEvents.reveal_map_cell(cell)`. `MapRevealOverlay` only renders the supplied `Vector2i` cells and must remain hidden outside Lanka at Night.
 
 ## Fire and escape — TBD
 Member 4 owns rooftop layout/story sequence; Member 2 owns approved gameplay hazards; Member 3 owns visual/audio fire effects. Cosmetic particles must not be the sole source of gameplay collision/damage.
