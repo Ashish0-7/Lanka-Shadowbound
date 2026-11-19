@@ -106,7 +106,7 @@ All 2D textures (`.png`) must use:
 
 ### 5.2 Asset Naming Conventions
 Files must strictly follow `snake_case` with `category_name_variant_frame.ext`:
-* Characters: `char_hanuman_idle_01.png`, `char_sita_portrait_neutral.png`
+* Characters: `char_hanuman_idle_down.png`, `char_hanuman_walk_right_01.png`, `char_sita_portrait_neutral.png`
 * Environments: `env_ocean_tileset.png`, `env_ashoka_vatika_bg.png`
 * UI: `ui_panel_indigo_frame.png`, `ui_icon_shrink_ready.png`, `ui_button_hover.tres`
 * Audio: `sfx_ui_select.wav`, `mus_level1_ocean_loop.ogg`
