@@ -1,0 +1,74 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/level_transition.gd" id="1_script"]
+[ext_resource type="Theme" path="res://assets/ui/main_theme.tres" id="2_theme"]
+
+[node name="LevelTransition" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_script")
+
+[node name="TransitionRoot" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Curtain" type="ColorRect" parent="TransitionRoot"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0392157, 0.0313726, 0.0784314, 1)
+
+[node name="TitleCardContainer" type="CenterContainer" parent="TransitionRoot"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="TransitionRoot/TitleCardContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ChapterLabel" type="Label" parent="TransitionRoot/TitleCardContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.356863, 0.501961, 0.65098, 1)
+theme_override_font_sizes/font_size = 11
+text = "CHAPTER I"
+horizontal_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="TransitionRoot/TitleCardContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.988235, 0.886275, 0.486275, 1)
+theme_override_colors/font_shadow_color = Color(0.0392157, 0.0313726, 0.0784314, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 20
+text = "CROSSING THE OCEAN"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="TransitionRoot/TitleCardContainer/VBox"]
+custom_minimum_size = Vector2(220, 4)
+layout_mode = 2
+
+[node name="SubtitleLabel" type="Label" parent="TransitionRoot/TitleCardContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.831373, 0.756863, 0.611765, 1)
+theme_override_font_sizes/font_size = 9
+text = "The Leap across the Raging Sea • Trials of Surasa & Simhika"
+horizontal_alignment = 1

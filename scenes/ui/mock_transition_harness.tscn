@@ -1,0 +1,51 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/mock_transition_harness.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/level_transition.tscn" id="2_trans"]
+
+[node name="MockTransitionHarness" type="Node"]
+script = ExtResource("1_script")
+
+[node name="BackgroundSim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.14902, 0.160784, 0.290196, 1)
+
+[node name="CenterLabel" type="Label" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -20.0
+offset_right = 200.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.831373, 0.756863, 0.611765, 1)
+theme_override_font_sizes/font_size = 11
+text = "[ Simulated Gameplay Scene Behind Transition ]"
+horizontal_alignment = 1
+
+[node name="Instructions" type="Label" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -30.0
+offset_right = 220.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.988235, 0.886275, 0.486275, 1)
+theme_override_font_sizes/font_size = 8
+text = "PRESS [1-5]: Preview Level Title Cards (1-5) • PRESS [F]: Quick Fade Test"
+horizontal_alignment = 1
+
+[node name="LevelTransition" parent="." instance=ExtResource("2_trans")]
