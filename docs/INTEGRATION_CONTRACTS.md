@@ -1,70 +1,68 @@
-# Integration Contracts: Lanka Shadowbound (UI Consumption Specifications)
+# Integration Contracts — Lanka Shadowbound
 
-*Proposed by Member 3 (UI, Art & Presentation) for Member 1, 2, and 4 Review & Alignment.*
+## Status
+This is the shared integration checklist. Member 1 owns approval and must fill in concrete node paths, method names, signal signatures and resource paths after inspecting the initial Godot project.
 
-This document specifies the exact signals and data structures consumed by the UI system.
-**Rule:** The UI strictly **consumes** these signals and does **not** store authoritative gameplay state.
+Agents must not assume proposed names are implemented APIs until Member 1 confirms them.
 
----
+## Principles
+- One canonical implementation of each shared system.
+- Feature owners implement behaviour; collaborating owners provide scene placement or presentation.
+- Prefer signals and narrow interfaces over reaching into another scene's internal nodes.
+- Check the repository before assuming a node path, autoload or method exists.
+- Shared-contract changes require agreement from affected members and an update to this file.
 
-## 1. Player & Combat Contracts (Owned by Member 2)
+## Player contract — TBD
+Record canonical player scene, movement ownership, abilities and invocation, health/damage interface, animation states, interaction entry point and player-state signals. Member 2 owns ability/combat behaviour; Member 1 owns shared architecture/integration.
 
-### 1.1 Health Updates
-* **Signal Name:** `player_health_changed(current: int, max_hp: int)`
-* **Description:** Emitted whenever Hanuman takes damage or receives healing.
-* **UI Behavior:** Updates `HUD.set_health(current, max_hp)`. If `current / max_hp <= 0.25`, triggers low-health warning indicator and pulse.
+## Encounter contract — TBD
+Each encounter needs a clear lifecycle: initialise/reset, become active, report success/defeat, report failure/retry if applicable, and communicate completion to level/story progression. Member 2 owns mechanics; Member 4 owns placement/layout/story sequence; Member 1 approves interface.
 
-### 1.2 Player Defeat
-* **Signal Name:** `player_died()`
-* **Description:** Emitted when Hanuman's health drops to 0.
-* **UI Behavior:** Updates HUD to display "DEFEATED" and preps game-over / respawn overlay.
+## Interactables and dialogue
+Define player detection, interaction prompt, trigger method, dialogue data interface and completion callback/signal. Member 4 owns narrative content/triggers; Member 3 owns presentation; Member 1 approves interface.
 
-### 1.3 Shrink Ability State
-* **Signal Name:** `shrink_ability_updated(is_active: bool, cooldown_remaining: float, cooldown_max: float, duration_remaining: float, duration_max: float)`
-* **Description:** Emitted continuously or upon state change of Hanuman's miniaturization ability.
-* **UI Behavior:** Updates `HUD.set_shrink_ability(...)`:
-  - When `is_active == true`: Shows "ACTIVE (SHRUNK)" in Surya Orange with active duration countdown.
-  - When `cooldown_remaining > 0.0`: Shows "RECHARGING" in Granite Highlight with recharge progress bar.
-  - When ready: Shows "SHRINK READY" in Divine Gold with `[SHIFT]` input badge.
-
----
-
-## 2. Objective & Mission Contracts (Owned by Member 1 / Member 4)
-
-### 2.1 Objective Update
-* **Signal Name:** `objective_updated(text: String, is_complete: bool)`
-* **Description:** Emitted when narrative or quest goals change (e.g. entering a new zone or solving an encounter).
-* **UI Behavior:** Updates `HUD.set_objective(...)`:
-  - Sets text in Parchment Cream with auto-wrapping.
-  - Toggles icon between `[•]` (In progress) and `[✔]` (Complete) in Lush Jade.
-
----
-
-## 3. Stealth & AI Contracts (Owned by Member 4 - Lanka at Night)
-
-### 3.1 Stealth Alert Meter
-* **Signal Name:** `stealth_alert_level_changed(alert_level: float, is_detected: bool)`
-* **Description:** Emitted during Level 3 (*Lanka at Night*) based on guard vision cones and proximity.
-* **UI Behavior:** Updates `HUD.set_stealth_alert(...)`:
-  - `alert_level == 0.0`: Meter hidden.
-  - `0.0 < alert_level <= 0.65`: "UNNOTICED" in Celestial Cyan.
-  - `0.65 < alert_level < 1.0`: "SUSPICIOUS (HIGH)" in Golden Ember.
-  - `is_detected == true` or `alert_level >= 1.0`: "DETECTED!" in Ruby Blood.
-
----
-
-## 4. Dialogue System Contracts (Owned by Member 4)
-
-### 4.1 Dialogue Line Structure
-* **Data Schema (Dictionary or Resource):**
+### Member 3 Dialogue Presentation Specification
+* **Data Schema (Dictionary):**
   ```gdscript
   {
       "speaker_name": String,      # e.g., "Hanuman", "Mandodari", "Sita", "Surasa"
-      "portrait_id": String,       # e.g., "hanuman_neutral", "mandodari_pensive", "sita_sorrow"
+      "portrait_path": String,     # e.g., "res://assets/ui/portraits/portrait_hanuman.png"
       "text": String,              # Dialogue content
       "blip_sound": String,        # "hero", "female_melodic", "reverent", "monster"
       "auto_advance_time": float   # 0.0 = manual press to advance, > 0.0 = auto
   }
   ```
-* **Signal Name:** `dialogue_started(dialogue_sequence: Array[Dictionary])`
-* **Signal Name:** `dialogue_finished()`
+* **Signals Consumed / Emitted by UI:**
+  - `start_dialogue(sequence: Array[Dictionary])`
+  - `signal line_started(line_index: int)`
+  - `signal line_finished(line_index: int)`
+  - `signal dialogue_completed()`
+
+## Objectives and story flags — TBD
+Define canonical current level, current objective, completed story events, key progression flags (including ring delivery and level completion), and checkpoint/restart state. Avoid duplicate conflicting progression state.
+
+## Level transitions — TBD
+Define a single mechanism for next level, restart/load, passing story/checkpoint state, transition presentation and invalid destination handling. Member 1 owns mechanism; Member 4 owns order/completion triggers; Member 3 owns presentation.
+
+## HUD and feedback
+Define source/signals for health, abilities, interaction prompts, objectives, stealth/alert state, map reveal and boss state. Member 3 owns UI presentation, not authoritative gameplay state.
+
+### Member 3 HUD Presentation Specification
+* **Health Updates:**
+  - `player_health_changed(current: int, max_hp: int)`
+  - `player_died()`
+* **Shrink Ability State:**
+  - `shrink_ability_updated(is_active: bool, cooldown_remaining: float, cooldown_max: float, duration_remaining: float, duration_max: float)`
+* **Objective Updates:**
+  - `objective_updated(text: String, is_complete: bool)`
+* **Stealth Alert Gauge (Lanka at Night):**
+  - `stealth_alert_level_changed(alert_level: float, is_detected: bool)`
+
+## Stealth and map reveal — TBD
+Member 4 owns patrol placement, layout and stealth progression. Member 2 owns agreed detection/alert logic. Member 3 owns map/alert presentation. Define one source of truth for explored areas and alert state.
+
+## Fire and escape — TBD
+Member 4 owns rooftop layout/story sequence; Member 2 owns approved gameplay hazards; Member 3 owns visual/audio fire effects. Cosmetic particles must not be the sole source of gameplay collision/damage.
+
+## Shared-change proposal
+Before changing a shared contract, report reason, current and proposed contract, affected files/members, migration steps and test plan. Member 1 approves and updates this document before dependent implementations proceed.
