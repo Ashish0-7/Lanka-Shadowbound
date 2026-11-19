@@ -43,6 +43,8 @@ func _ready() -> void:
 	_shadow.draw.connect(_draw_shadow)
 	add_child(_shadow)
 	player.attack_started.connect(_on_attack_started)
+	player.charge_ready.connect(_on_charge_ready)
+	player.spin_performed.connect(_on_spin)
 	GameEvents.player_health_changed.connect(_on_health_changed)
 	GameEvents.shrink_ability_updated.connect(_on_shrink_updated)
 
@@ -105,6 +107,35 @@ func _show_impact() -> void:
 		GameFeel.shake(self, 3.0, 0.16)
 		_sfx("impact", -5.0, 0.8)
 
+# --- Charged spin ------------------------------------------------------------------------
+
+func _on_charge_ready() -> void:
+	VFXHitFlash.flash(sprite, Color(1.0, 0.95, 0.6), 0.08, 1)
+	VFXImpact.sparks(get_parent().get_parent(), player.global_position + Vector2(0, -4), ARC_COLOR, 8)
+	_sfx("objective", -10.0, 1.8)
+
+## Full-circle gada sweep: Hanuman whirls once and a golden ring rolls out around him.
+func _on_spin(_origin: Vector2) -> void:
+	if _pose_tween and _pose_tween.is_valid():
+		_pose_tween.kill()
+	var start: float = FACING_ANGLE.get(player.facing, PI * 0.5)
+	_arc_from = start
+	_arc_to = start + TAU
+	_arc_radius = 30.0 if not player.is_giant() else 44.0
+	_arc_heavy = true
+	_arc_fade = 1.0
+	_arc_progress = 0.0
+	_arc_visible = true
+	_pose_tween = create_tween()
+	_pose_tween.tween_property(sprite, "rotation", TAU, 0.24).from(0.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_pose_tween.parallel().tween_property(self, "_arc_progress", 1.0, 0.18)
+	_pose_tween.tween_callback(func(): sprite.rotation = 0.0)
+	_pose_tween.tween_property(self, "_arc_fade", 0.0, 0.2)
+	VFXImpact.shockwave(get_parent().get_parent(), player.global_position + Vector2(0, 8), 58.0, ARC_COLOR, 0.55)
+	GameFeel.shake(self, 5.0, 0.22)
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_layered(["whoosh", "slam"], -3.0)
+
 # --- Reactions --------------------------------------------------------------------------
 
 func _on_health_changed(current: int, _max_hp: int) -> void:
@@ -132,6 +163,23 @@ func _on_shrink_updated(is_active: bool, _cd: float, _cd_max: float, _left: floa
 # --- Drawing ----------------------------------------------------------------------------
 
 func _draw() -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	# Charging: a golden ring fills around Hanuman's feet; once charged it pulses.
+	if player.charge_time > 0.12:
+		var ratio := clampf(player.charge_time / player.SPIN_CHARGE, 0.0, 1.0)
+		draw_set_transform(Vector2(0, 12), 0.0, Vector2(1.0, 0.45))
+		draw_arc(Vector2.ZERO, 18.0, -PI * 0.5, -PI * 0.5 + TAU * ratio, 28, Color(ARC_COLOR, 0.85), 2.0)
+		if ratio >= 1.0:
+			draw_circle(Vector2.ZERO, 18.0 + sin(t * 20.0) * 2.0, Color(ARC_COLOR, 0.18))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		for i in 4:
+			var rise := fposmod(t * 30.0 + i * 9.0, 24.0)
+			draw_rect(Rect2(Vector2(-10 + i * 6, 10 - rise), Vector2.ONE), Color(ARC_COLOR, 1.0 - rise / 24.0))
+	# Giant form: a radiant golden aura.
+	if player.is_giant():
+		var pulse := 0.5 + 0.5 * sin(t * 6.0)
+		draw_circle(Vector2(0, -4), 34.0 + pulse * 4.0, Color(1.0, 0.86, 0.42, 0.10))
+		draw_circle(Vector2(0, -4), 26.0, Color(1.0, 0.9, 0.55, 0.10 + 0.08 * pulse))
 	if _arc_visible and _arc_fade > 0.01:
 		var to := lerpf(_arc_from, _arc_to, _arc_progress)
 		var width := 5.0 if _arc_heavy else 4.0

@@ -32,8 +32,8 @@ const HINT_PRESETS: Dictionary = {
 	},
 	"stealth": {
 		"title": "SHADOW INFILTRATION",
-		"key": "[C / CROUCH]",
-		"desc": "Crouch in palace shadows. Keep clear of the Rakshasa guards' lantern light."
+		"key": "[WASD]",
+		"desc": "Stay out of the guard's lantern light. Palace walls block his view — use them as cover."
 	},
 	"combat": {
 		"title": "STRIKE",

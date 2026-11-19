@@ -199,6 +199,20 @@ func _on_lankini_strike() -> void:
 		GameFeel.hitstop(self, 0.1)
 		director.hurt_player(12, LANKINI_POS, 38.0, "Lankini's slam sends you flying!")
 
+## "Jai Shri Ram": every boss attack in progress is cancelled and they reel for `seconds`.
+func stun_bosses(seconds: float) -> void:
+	for attack in [surasa_attack, simhika_attack, lankini_attack]:
+		if attack.is_ready():
+			attack.phase = TelegraphedAttack.Phase.WINDUP
+		attack.interrupt(seconds)
+	for marker in [jaw_marker, shadow_marker, slam_marker]:
+		marker.cancel()
+	for boss in [surasa, simhika, lankini]:
+		var defeated: bool = boss == lankini and lankini_health <= 0
+		if boss.visible and not defeated:
+			boss.cancel_windup()
+			boss.set_state("hurt", seconds * 0.5)
+
 # --- Hanuman's strikes ------------------------------------------------------------------
 
 ## Returns true if the strike connected with a boss.

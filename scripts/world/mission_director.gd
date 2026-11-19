@@ -25,8 +25,23 @@ var dialogue_seen := false
 var hazard_cooldown := 0.0
 var guard_alert := 0.0
 var encounters: BossEncounters
+var maze: LevelMaze
+var backdrop: ChapterBackdrop
+const NPC_DIR := "res://assets/characters/npcs/"
+var guard_sprite: AnimatedSprite2D
+var mandodari_sprite: AnimatedSprite2D
+var sita_sprite: AnimatedSprite2D
+var guard_post := Vector2.ZERO
+var sita_position := Vector2.ZERO
 var cinematic_playing := false
-var _knockback_tween: Tween
+var _knock_velocity := Vector2.ZERO
+var _sita_farewell := -1.0
+var swarm: MinionSwarm
+## Devotion fills from kills and boss hits; full → [Q] "Jai Shri Ram!" giant form.
+const DEVOTION_MAX := 100.0
+const GIANT_SECONDS := 4.0
+var devotion := 0.0
+const CALLOUTS := {2: "DOUBLE!", 3: "TRIPLE!", 4: "QUAD SMASH!"}
 var _intros_seen: Dictionary = {}
 ## Bumped on every chapter (re)start so a running cinematic can tell it was superseded.
 var _flow_token := 0
@@ -36,10 +51,35 @@ func _ready() -> void:
 	player.connect("attack_performed", Callable(self, "_on_player_attack"))
 	dialogue.dialogue_completed.connect(_on_dialogue_completed)
 	get_parent().get_node("PauseMenu").restart_level_requested.connect(func(): _start_chapter(chapter))
+	backdrop = ChapterBackdrop.new()
+	backdrop.name = "Backdrop"
+	backdrop.z_index = -1
+	add_child(backdrop)
+	maze = LevelMaze.new()
+	maze.name = "Maze"
+	add_child(maze)
+	backdrop.maze = maze
+	guard_sprite = _make_npc("Guard", {"idle": [[NPC_DIR + "char_guard_rakshasa_01.png", NPC_DIR + "char_guard_rakshasa_02.png"], 5.0]})
+	mandodari_sprite = _make_npc("Mandodari", {"idle": [[NPC_DIR + "char_mandodari_idle.png"], 1.0]})
+	# Sita: sorrowful with an occasional blink, then joyful once Hanuman finds her.
+	var sad := []
+	for i in 14:
+		sad.append(NPC_DIR + "char_sita_seated_sad.png")
+	sad.append(NPC_DIR + "char_sita_seated_blink.png")
+	sita_sprite = _make_npc("Sita", {"sad": [sad, 6.0], "joy": [[NPC_DIR + "char_sita_seated_joy.png"], 1.0]})
 	encounters = BossEncounters.new()
 	encounters.name = "BossEncounters"
 	add_child(encounters)
 	encounters.setup(self, player)
+	swarm = MinionSwarm.new()
+	swarm.name = "Minions"
+	swarm.maze = maze
+	swarm.player = player
+	add_child(swarm)
+	swarm.minions_killed.connect(_on_minions_killed)
+	swarm.player_nipped.connect(func(damage: int, from: Vector2): hurt_player(damage, from, 16.0))
+	player.spin_performed.connect(_on_player_spin)
+	_add_devotion(0.0)
 	encounters.lankini_defeated.connect(_on_lankini_defeated)
 	encounters.lankini_health_changed.connect(overlay.set_boss_health)
 	# main.tscn boots straight into play (the menu is not in the flow yet), so start music here.
@@ -52,6 +92,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 	if cinematic_playing:
 		return
+	swarm.update(delta)
 	match chapter:
 		1: _update_ocean(delta)
 		2: _update_gates(delta)
@@ -63,13 +104,31 @@ func _start_chapter(number: int) -> void:
 	chapter = number
 	dialogue_seen = false
 	guard_alert = 0.0
-	if _knockback_tween and _knockback_tween.is_valid():
-		_knockback_tween.kill()
-	player.global_position = Vector2(50, 180)
+	_knock_velocity = Vector2.ZERO
+	_sita_farewell = -1.0
+	maze.build(number)
+	backdrop.chapter = number
+	guard_post = maze.marker_position("G", Vector2.ZERO) if number == 3 else Vector2.ZERO
+	guard_sprite.visible = guard_post != Vector2.ZERO
+	guard_sprite.position = guard_post
+	backdrop.guard_position = guard_post
+	sita_position = maze.marker_position("T", Vector2.ZERO) if number == 4 else Vector2.ZERO
+	backdrop.sita_position = sita_position
+	backdrop.sita_found = false
+	sita_sprite.visible = sita_position != Vector2.ZERO
+	sita_sprite.position = sita_position + Vector2(0, -6)
+	sita_sprite.play("sad")
+	var queen_at := maze.marker_position("M", Vector2.ZERO) if number == 3 else Vector2.ZERO
+	mandodari_sprite.visible = queen_at != Vector2.ZERO
+	mandodari_sprite.position = queen_at + Vector2(0, -4)
+	player.global_position = maze.marker_position("S", Vector2(50, 180))
 	player.restore_health()
 	map_overlay.visible = number == 3
 	map_overlay.clear_reveal()
+	backdrop.guard_alert = 0.0
+	GameEvents.stealth_alert_level_changed.emit(0.0, false)
 	encounters.reset_for_chapter(number)
+	swarm.spawn(number)
 	overlay.hide_boss_bar()
 	_flow_token += 1
 	if cinematic_playing:
@@ -114,6 +173,25 @@ func _intro_boss(boss: BossSprite, boss_name: String, epithet: String, sound: St
 	await overlay.boss_intro(boss_name, epithet, 1.2)
 	await GameFeel.release(self, 0.5)
 
+## Builds a pixel-art NPC from {animation: [[frame paths], fps]}. Hidden until a chapter places it.
+func _make_npc(npc_name: String, animations: Dictionary) -> AnimatedSprite2D:
+	var frames := SpriteFrames.new()
+	frames.remove_animation("default")
+	for anim in animations:
+		frames.add_animation(anim)
+		frames.set_animation_speed(anim, animations[anim][1])
+		for path in animations[anim][0]:
+			frames.add_frame(anim, load(path))
+	var npc := AnimatedSprite2D.new()
+	npc.name = npc_name
+	npc.sprite_frames = frames
+	npc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	npc.z_index = 1
+	npc.visible = false
+	npc.play(animations.keys()[0])
+	add_child(npc)
+	return npc
+
 func _set_cinematic(enabled: bool) -> void:
 	cinematic_playing = enabled
 	player.velocity = Vector2.ZERO
@@ -148,8 +226,19 @@ func _advance_chapter() -> void:
 
 func _update_ocean(delta: float) -> void:
 	encounters.update_ocean(delta)
-	if player.global_position.x > 600:
+	if maze.is_exit(player.global_position):
 		_advance_chapter()
+
+## Knockback that respects maze walls, and crevice safety: Hanuman cannot grow back to full
+## size while wedged inside a crevice (he would be stuck in the wall), so he stays small.
+func _physics_process(delta: float) -> void:
+	if _knock_velocity.length() > 5.0:
+		player.move_and_collide(_knock_velocity * delta)
+		_knock_velocity = _knock_velocity.lerp(Vector2.ZERO, minf(1.0, delta * 12.0))
+	else:
+		_knock_velocity = Vector2.ZERO
+	if maze.is_crevice(player.global_position) and player.shrink_remaining < 0.15:
+		player.shrink_remaining = 0.15
 
 func _update_gates(delta: float) -> void:
 	encounters.update_gates(delta)
@@ -177,35 +266,100 @@ func _on_lankini_defeated() -> void:
 func _update_night(delta: float) -> void:
 	var cell := Vector2i(int(player.global_position.x / 32.0), int(player.global_position.y / 30.0))
 	GameEvents.reveal_map_cell(cell)
-	var guard := Vector2(325, 180)
-	var distance: float = player.global_position.distance_to(guard)
-	guard_alert = move_toward(guard_alert, 1.0 if distance < 105.0 else 0.0, delta * 0.8)
+	# The guard only notices Hanuman when close AND with a clear line of sight: walls are cover.
+	var seen: bool = player.global_position.distance_to(guard_post) < backdrop.guard_radius \
+		and maze.has_line_of_sight(guard_post, player.global_position)
+	guard_alert = move_toward(guard_alert, 1.0 if seen else 0.0, delta * (0.9 if seen else 0.6))
+	backdrop.guard_alert = guard_alert
+	guard_sprite.modulate = Color.WHITE.lerp(Color(1.0, 0.5, 0.45), guard_alert)
 	GameEvents.stealth_alert_level_changed.emit(guard_alert, guard_alert > 0.92)
 	if guard_alert > 0.92:
 		_warn_or_damage("A guard has spotted you—retreat into shadow.")
-	if player.global_position.x > 240 and not dialogue_seen:
+	# Meeting the sleeping queen triggers Hanuman's mistake (fallback: deep into the palace).
+	var near_queen: bool = player.global_position.distance_to(mandodari_sprite.position) < 48.0
+	if not dialogue_seen and (near_queen or player.global_position.x > 400.0):
 		dialogue_seen = true
 		dialogue.play_mandodari_misunderstanding_scene()
-	if dialogue_seen and not dialogue.is_active and player.global_position.x > 580:
+	if dialogue_seen and not dialogue.is_active and maze.is_exit(player.global_position):
 		_advance_chapter()
 
+## Reaching Sita at the heart of the grove plays the ring handover, then the chapter ends.
 func _update_vatika() -> void:
-	if player.global_position.x > 310 and not dialogue_seen:
+	if not dialogue_seen and player.global_position.distance_to(sita_position) < 40.0:
 		dialogue_seen = true
+		backdrop.sita_found = true
+		sita_sprite.play("joy")
+		VFXImpact.sparks(self, sita_position, Color(0.99, 0.89, 0.49), 18)
 		dialogue.play_sita_ring_handover_scene()
-	if dialogue_seen and not dialogue.is_active and player.global_position.x > 410:
-		_advance_chapter()
+	if dialogue_seen and not dialogue.is_active:
+		if _sita_farewell < 0.0:
+			_sita_farewell = Time.get_ticks_msec() / 1000.0 + 1.5
+		elif Time.get_ticks_msec() / 1000.0 > _sita_farewell:
+			_advance_chapter()
 
 func _update_escape(_delta: float) -> void:
 	if player.global_position.x > 180 and player.global_position.x < 520 and hazard_cooldown <= 0.0:
 		player.take_damage(7)
 		hazard_cooldown = 1.0
 		GameEvents.encounter_feedback.emit("Flames scorch the rooftops—keep moving!")
-	if player.global_position.x > 580:
+	if maze.is_exit(player.global_position):
 		_advance_chapter()
 
+const FACING_DIR := {"right": Vector2.RIGHT, "left": Vector2.LEFT, "up": Vector2.UP, "down": Vector2.DOWN}
+
+## Normal swing: kills imps in a small area in front of Hanuman (much larger when giant).
 func _on_player_attack(origin: Vector2) -> void:
-	encounters.on_player_attack(chapter, origin, player.attack_range)
+	var reach := 50.0 if player.is_giant() else 26.0
+	swarm.hit_area(origin + FACING_DIR.get(player.facing, Vector2.DOWN) * 14.0, reach)
+	if encounters.on_player_attack(chapter, origin, player.attack_range):
+		_add_devotion(8.0)
+
+## Charged spin: clears every imp around Hanuman and counts as a hit on a boss in reach.
+func _on_player_spin(origin: Vector2) -> void:
+	var killed := swarm.hit_area(origin, 80.0 if player.is_giant() else 58.0)
+	if killed > 0:
+		GameFeel.hitstop(self, 0.07)
+	if encounters.on_player_attack(chapter, origin, 70.0):
+		_add_devotion(8.0)
+
+func _on_minions_killed(count: int, at: Vector2) -> void:
+	if not player.is_giant():
+		_add_devotion(10.0 * count + (10.0 if count >= 3 else 0.0))
+	_play_sfx("impact", -3.0)
+	if count >= 5:
+		FloatingText.spawn(self, at + Vector2(0, -14), "PENTA SMASH!", Color(1.0, 0.86, 0.42), 16)
+		GameFeel.shake(self, 6.0, 0.25)
+	elif CALLOUTS.has(count):
+		FloatingText.spawn(self, at + Vector2(0, -14), CALLOUTS[count], Color(1.0, 0.86, 0.42), 13)
+	else:
+		FloatingText.spawn(self, at + Vector2(0, -10), "+%d" % (10 * count), Color(0.99, 0.95, 0.75), 9)
+	# Fighting in the palace is noisy: the guard grows suspicious.
+	if chapter == 3 and guard_post != Vector2.ZERO:
+		guard_alert = minf(0.9, guard_alert + 0.12 * count)
+
+func _add_devotion(amount: float) -> void:
+	devotion = clampf(devotion + amount, 0.0, DEVOTION_MAX)
+	GameEvents.devotion_changed.emit(devotion, DEVOTION_MAX)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("devotion") and devotion >= DEVOTION_MAX and not cinematic_playing:
+		get_viewport().set_input_as_handled()
+		_jai_shri_ram()
+
+## Full devotion: Hanuman roars "Jai Shri Ram!", grows giant, every imp on screen is
+## destroyed and the bosses are stunned.
+func _jai_shri_ram() -> void:
+	devotion = 0.0
+	_add_devotion(0.0)
+	player.activate_giant(GIANT_SECONDS)
+	overlay.shout("JAI SHRI RAM!")
+	swarm.kill_all()
+	encounters.stun_bosses(2.5)
+	VFXImpact.shockwave(self, player.global_position + Vector2(0, 8), 160.0, Color(1.0, 0.86, 0.42), 0.55)
+	GameFeel.shake(self, 8.0, 0.45)
+	GameFeel.hitstop(self, 0.12)
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_layered(["slam", "victory"], -1.0)
 
 func _on_dialogue_completed() -> void:
 	if chapter == 4:
@@ -220,6 +374,8 @@ func _warn_or_damage(message: String) -> void:
 ## Single entry point for hurting Hanuman: damage, flash, knockback away from `source`,
 ## shake, feedback text, and a chapter restart on defeat.
 func hurt_player(amount: int, source: Vector2, knockback: float, message: String = "") -> void:
+	if player.is_giant():
+		return
 	player.take_damage(amount)
 	VFXHitFlash.damage_flash(player)
 	GameFeel.shake(self, 4.0, 0.2)
@@ -232,11 +388,8 @@ func hurt_player(amount: int, source: Vector2, knockback: float, message: String
 		return
 	var direction: Vector2 = (player.global_position - source).normalized()
 	if knockback > 0.0 and direction != Vector2.ZERO:
-		var target: Vector2 = (player.global_position + direction * knockback).clamp(Vector2(16, 16), Vector2(624, 344))
-		if _knockback_tween and _knockback_tween.is_valid():
-			_knockback_tween.kill()
-		_knockback_tween = create_tween()
-		_knockback_tween.tween_property(player, "global_position", target, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		# Applied in _physics_process with collisions, so knockback never shoves him into a wall.
+		_knock_velocity = direction * knockback * 12.0
 
 func _show_ending() -> void:
 	set_process(false)
@@ -244,63 +397,3 @@ func _show_ending() -> void:
 	notification.notify("MISSION COMPLETE", "LANKA SHADOWBOUND", "Hanuman returns across the ocean with hope for Rama and Sita.", true)
 	if has_node("/root/AudioManager"):
 		get_node("/root/AudioManager").play_sfx("victory", -2.0)
-
-func _draw() -> void:
-	var backgrounds: Array[Color] = [
-		Color("#16405e"), Color("#422938"), Color("#12172e"),
-		Color("#264b31"), Color("#54231c")
-	]
-	var background: Color = backgrounds[chapter - 1]
-	if chapter == 1:
-		_draw_ocean()
-		return
-	draw_rect(Rect2(0, 0, 640, 360), background)
-	for x in range(20, 620, 60):
-		draw_circle(Vector2(x, 140 + sin(float(x)) * 18.0), 9.0, Color("#fce27c") if chapter == 4 else Color("#3b4876"))
-	if chapter == 3:
-		draw_circle(Vector2(325, 180), 14.0, Color("#f7b945"))
-		draw_string(ThemeDB.fallback_font, Vector2(300, 158), "GUARD", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
-	if chapter == 5:
-		for x in range(190, 520, 60):
-			draw_circle(Vector2(x, 215), 12.0, Color("#eb7e28"))
-
-## Chapter 1 backdrop: dusk sky, Lanka on the far horizon (the goal), animated sea,
-## a whirlpool under Surasa and Simhika's shadow pool. Procedural until painted art lands.
-func _draw_ocean() -> void:
-	var t := Time.get_ticks_msec() / 1000.0
-	var sky_top := Color("#0b1c33")
-	var sky_low := Color("#3a5f86")
-	for i in 14:
-		draw_rect(Rect2(0, i * 8, 640, 8), sky_top.lerp(sky_low, i / 13.0))
-	draw_rect(Rect2(0, 108, 640, 6), Color("#e8a04a").darkened(0.15))
-	# Lanka silhouette on the right horizon.
-	var lanka := Color("#14142a")
-	draw_rect(Rect2(540, 96, 100, 16), lanka)
-	for tower in [[552, 82, 10], [572, 70, 12], [596, 62, 14], [622, 76, 10]]:
-		draw_rect(Rect2(tower[0], tower[1], tower[2], 112 - tower[1]), lanka)
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(tower[0] - 2, tower[1]), Vector2(tower[0] + tower[2] / 2.0, tower[1] - 10),
-			Vector2(tower[0] + tower[2] + 2, tower[1])]), lanka)
-		draw_rect(Rect2(tower[0] + tower[2] / 2.0 - 1, tower[1] + 8, 2, 3), Color("#f7c55a"))
-	# Sea: lighter near the horizon, deeper toward the viewer.
-	var sea_far := Color("#2c6c8e")
-	var sea_near := Color("#0f3150")
-	for i in 31:
-		draw_rect(Rect2(0, 114 + i * 8, 640, 8), sea_far.lerp(sea_near, i / 30.0))
-	for row in 11:
-		var y := 124.0 + row * 22.0
-		var dir := 1.0 if row % 2 == 0 else -1.0
-		var length := 8.0 + row * 1.5
-		var offset := fposmod(t * (10.0 + row * 2.0) * dir + row * 37.0, 48.0)
-		for k in range(-1, 15):
-			var x := k * 48.0 + offset
-			draw_line(Vector2(x, y), Vector2(x + length, y), Color(0.55, 0.8, 0.9, 0.35 + 0.02 * row), 1.0)
-	# Surasa's whirlpool and Simhika's shadow pool, centred under each boss.
-	draw_set_transform(Vector2(350, 214), 0.0, Vector2(1.0, 0.32))
-	for ring in 4:
-		var r := 30.0 + ring * 10.0 + sin(t * 2.0 + ring) * 2.0
-		draw_arc(Vector2.ZERO, r, t * 1.5 + ring, t * 1.5 + ring + TAU * 0.8, 32, Color(0.75, 0.9, 1.0, 0.45 - ring * 0.08), 2.0)
-	draw_set_transform(Vector2(490, 216), 0.0, Vector2(1.0, 0.3))
-	draw_circle(Vector2.ZERO, 46.0 + sin(t * 1.7) * 3.0, Color(0.12, 0.02, 0.18, 0.75))
-	draw_circle(Vector2.ZERO, 30.0, Color(0.28, 0.06, 0.36, 0.55))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

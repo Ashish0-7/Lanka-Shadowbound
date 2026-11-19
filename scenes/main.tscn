@@ -17,6 +17,13 @@
 [node name="Hanuman" parent="." unique_id=851366360 instance=ExtResource("2_player")]
 position = Vector2(320, 180)
 
+[node name="MapRevealOverlay" parent="." visible=false instance=ExtResource("10_map_reveal")]
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 640.0
+offset_bottom = 360.0
+
 [node name="HUD" parent="." instance=ExtResource("3_hud")]
 anchors_preset = 0
 anchor_right = 0.0
@@ -51,13 +58,6 @@ anchor_top = 0.0
 anchor_right = 0.0
 anchor_bottom = 0.0
 offset_top = 286.0
-offset_right = 640.0
-offset_bottom = 360.0
-
-[node name="MapRevealOverlay" parent="." visible=false instance=ExtResource("10_map_reveal")]
-anchors_preset = 0
-anchor_right = 0.0
-anchor_bottom = 0.0
 offset_right = 640.0
 offset_bottom = 360.0
 

@@ -137,6 +137,29 @@ func boss_intro(boss_name: String, epithet: String, hold: float = 1.5) -> void:
 	await tween.finished
 	_intro.visible = false
 
+## Full-screen flash plus a huge golden shout that punches in and fades ("JAI SHRI RAM!").
+func shout(text: String, hold: float = 0.9) -> void:
+	var flash := ColorRect.new()
+	flash.color = Color(1.0, 0.96, 0.8, 0.85)
+	flash.size = Vector2(UIConstants.VIEWPORT_WIDTH, UIConstants.VIEWPORT_HEIGHT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(flash)
+	var label := _make_label(UIConstants.FONT_SIZE_TITLE + 14, UIConstants.COLOR_DIVINE_GOLD, 6)
+	label.text = text
+	label.size = Vector2(UIConstants.VIEWPORT_WIDTH, 60)
+	label.position = Vector2(0, 140)
+	label.pivot_offset = label.size * 0.5
+	label.scale = Vector2(2.2, 2.2)
+	_root.add_child(label)
+	var tween := create_tween()
+	tween.tween_property(flash, "color:a", 0.0, 0.35)
+	tween.parallel().tween_property(label, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(hold)
+	tween.tween_property(label, "modulate:a", 0.0, 0.35)
+	await tween.finished
+	flash.queue_free()
+	label.queue_free()
+
 func show_boss_bar(boss_name: String, max_health: int) -> void:
 	_boss_bar.present(boss_name, max_health)
 
