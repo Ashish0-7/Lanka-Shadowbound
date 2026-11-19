@@ -56,6 +56,7 @@ func _ready() -> void:
 
 ## Fades screen to black. Emits fade_out_completed when screen is fully black.
 func fade_out(duration: float = UIConstants.FADE_TRANSITION_DURATION) -> void:
+	_play_transition_sound()
 	if active_tween and active_tween.is_valid():
 		active_tween.kill()
 		
@@ -70,6 +71,7 @@ func fade_out(duration: float = UIConstants.FADE_TRANSITION_DURATION) -> void:
 
 ## Fades screen from black back to clear gameplay. Emits fade_in_completed.
 func fade_in(duration: float = UIConstants.FADE_TRANSITION_DURATION) -> void:
+	_play_transition_sound()
 	if active_tween and active_tween.is_valid():
 		active_tween.kill()
 		
@@ -83,6 +85,7 @@ func fade_in(duration: float = UIConstants.FADE_TRANSITION_DURATION) -> void:
 
 ## Plays a full chapter title card presentation sequence.
 func play_title_card(chapter_text: String, title_text: String, subtitle_text: String = "", hold_seconds: float = 2.0) -> void:
+	_play_transition_sound()
 	if active_tween and active_tween.is_valid():
 		active_tween.kill()
 
@@ -119,3 +122,7 @@ func play_level_title_card(level_number: int, hold_seconds: float = 2.0) -> void
 		return
 	var meta: Dictionary = LEVEL_METADATA[level_number]
 	play_title_card(meta["chapter"], meta["title"], meta["subtitle"], hold_seconds)
+
+func _play_transition_sound() -> void:
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_sfx("transition", -4.0)

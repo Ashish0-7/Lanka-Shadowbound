@@ -30,10 +30,15 @@ var pulse_tween: Tween
 func _ready() -> void:
 	hide()
 	advance_prompt.visible = false
+	audio_blip_requested.connect(_on_audio_blip_requested)
 	if has_node("/root/GameEvents"):
 		var events: Node = get_node("/root/GameEvents")
 		if events.has_signal("dialogue_requested"):
 			events.connect("dialogue_requested", Callable(self, "start_dialogue"))
+
+func _on_audio_blip_requested(blip_id: String) -> void:
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_dialogue_blip(blip_id)
 
 func _process(delta: float) -> void:
 	if not is_typing:

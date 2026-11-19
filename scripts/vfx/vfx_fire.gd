@@ -11,6 +11,8 @@ enum FireMode { SMALL_TORCH, LARGE_BLAZE, EMBER_TRAIL }
 
 func _ready() -> void:
 	_configure_for_mode(fire_mode)
+	if has_node("/root/AudioManager") and fire_mode == FireMode.LARGE_BLAZE:
+		get_node("/root/AudioManager").play_sfx("fire", -9.0)
 
 func set_mode(mode: FireMode) -> void:
 	fire_mode = mode

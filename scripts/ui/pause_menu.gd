@@ -40,6 +40,8 @@ func resume() -> void:
 
 func _on_resume_pressed() -> void:
 	resume()
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_sfx("ui_select", -2.0)
 
 func _on_restart_pressed() -> void:
 	get_tree().paused = false

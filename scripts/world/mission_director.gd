@@ -75,6 +75,8 @@ func _start_chapter(number: int) -> void:
 	map_overlay.visible = number == 3
 	map_overlay.clear_reveal()
 	_hide_bosses()
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_sfx("telegraph", -5.0)
 	if number == 1:
 		surasa_boss.visible = true
 		surasa_boss.set_state("idle")
@@ -170,6 +172,8 @@ func _on_player_attack(origin: Vector2) -> void:
 		GameEvents.encounter_feedback.emit("Lankini staggered! %d strikes remain." % boss_health)
 		if boss_health <= 0:
 			notification.notify("VICTORY", "LANKINI DEFEATED", "The gates of Lanka stand open.", true)
+			if has_node("/root/AudioManager"):
+				get_node("/root/AudioManager").play_sfx("victory", -2.0)
 
 func _on_dialogue_completed() -> void:
 	if chapter == 4:
@@ -182,12 +186,16 @@ func _warn_or_damage(message: String) -> void:
 	hazard_cooldown = 1.0
 	GameEvents.encounter_feedback.emit(message)
 	if player.health <= 0:
+		if has_node("/root/AudioManager"):
+			get_node("/root/AudioManager").play_sfx("defeat", -1.0)
 		_start_chapter(chapter)
 
 func _show_ending() -> void:
 	set_process(false)
 	GameEvents.objective_updated.emit("Journey complete", true)
 	notification.notify("MISSION COMPLETE", "LANKA SHADOWBOUND", "Hanuman returns across the ocean with hope for Rama and Sita.", true)
+	if has_node("/root/AudioManager"):
+		get_node("/root/AudioManager").play_sfx("victory", -2.0)
 
 func _draw() -> void:
 	var backgrounds: Array[Color] = [

@@ -81,3 +81,4 @@ environment/defaults/default_clear_color=Color(0.055, 0.075, 0.09, 1)
 [autoload]
 
 GameEvents="*res://scripts/systems/game_events.gd"
+AudioManager="*res://scripts/systems/audio_manager.gd"

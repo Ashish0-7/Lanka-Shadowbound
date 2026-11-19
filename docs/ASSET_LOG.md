@@ -29,8 +29,8 @@ All assets must be verified for commercial/hackathon use under permitted licence
 | `assets/environments/tilesets/env_night_palace_tileset.png` | Level 3 Tileset (64x64) | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Verified / Integrated |
 | `assets/environments/tilesets/env_ashoka_vatika_tileset.png` | Level 4 Tileset (64x64) | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Verified / Integrated |
 | `assets/environments/tilesets/env_burning_rooftops_tileset.png` | Level 5 Tileset (64x64) | Member 3 (Original Pixel Art) | Internal repository | MIT / Project License | Created for Lanka Shadowbound | 2026-11-19 | Verified / Integrated |
-| `assets/audio/music/` | Music | OpenGameArt / Incompetech / Custom | TBD | CC0 / CC-BY 4.0 | Detailed per track upon import | 2026-11-19 | Planned |
-| `assets/audio/sfx/` | Sound Effects | Kenney / jsfxr / Custom | https://kenney.nl / jsfxr | CC0 1.0 Universal | No attribution required (Kenney/jsfxr) | 2026-11-19 | Planned |
+| `assets/audio/music/mus_main_theme_loop.wav` | Original Procedural Theme | Member 3 (Original) | Internal repository | MIT / Project License | Procedurally synthesized loop; no third-party content | 2026-11-20 | Verified / Integrated |
+| `assets/audio/sfx/*.wav` | Original Procedural SFX | Member 3 (Original) | Internal repository | MIT / Project License | 19 synthesized UI, combat, movement, environment, encounter, dialogue, victory and defeat effects | 2026-11-20 | Verified / Integrated |
 
 ---
 

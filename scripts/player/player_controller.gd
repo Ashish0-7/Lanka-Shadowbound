@@ -35,6 +35,7 @@ const SHRINK_COOLDOWN := 5.0
 var animation_timer: float = 0.0
 var attack_timer: float = 0.0
 var facing: String = "down"
+var footstep_timer: float = 0.0
 
 func _load_walk_textures(direction: String) -> Array[Texture2D]:
 	var textures: Array[Texture2D] = []
@@ -65,6 +66,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("attack"):
 		attack_timer = 0.18
 		attack_performed.emit(global_position)
+		if has_node("/root/AudioManager"):
+			get_node("/root/AudioManager").play_sfx("attack", -2.0)
 		get_viewport().set_input_as_handled()
 
 func _update_sprite(delta: float, input_direction: Vector2) -> void:
@@ -89,6 +92,11 @@ func _update_sprite(delta: float, input_direction: Vector2) -> void:
 			var frame: int = mini(int(animation_timer * 8.0) % 8, 7)
 			var walk_frames: Array = walk_textures[facing]
 			sprite.texture = walk_frames[frame]
+			footstep_timer -= delta
+			if footstep_timer <= 0.0:
+				footstep_timer = 0.24
+				if has_node("/root/AudioManager"):
+					get_node("/root/AudioManager").play_sfx("footstep", -11.0, 0.92)
 		else:
 			animation_timer = 0.0
 			sprite.texture = idle_textures[facing]
