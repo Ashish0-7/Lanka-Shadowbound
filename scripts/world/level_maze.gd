@@ -1,20 +1,26 @@
 class_name LevelMaze
 extends Node2D
 
-## LevelMaze: builds a chapter's maze from MazeLayouts — collision walls, themed wall art,
-## exit beacons — and answers spatial questions (start, exits, markers, line of sight).
+## LevelMaze: builds a chapter's map from MazeLayouts — collision walls, themed wall art,
+## exits, pickups and markers — and answers spatial questions (start, exits, markers, line
+## of sight). Maps can be any size; only the cells on screen are drawn each frame.
 ## Walls use physics layer 1; crevices use layer 2, which Hanuman ignores while shrunk.
 
 const CELL := 32
-const ORIGIN_Y := 4
-const COLS := 20
-const ROWS := 11
+const ORIGIN_Y := 0
 const CREVICE_LAYER := 2
+## Cells that stop movement (h = hidden passage looks like a wall but is walkable).
+const SOLID := ["#", "X"]
+## Cells that block sight.
+const OPAQUE := ["#", "X", "c", "h"]
 
 var theme := "ocean"
+var cols := 0
+var rows := 0
 var _rows: Array = []
 var _walls: StaticBody2D
 var _crevices: StaticBody2D
+var _lamps: Array[Vector2] = []
 
 func _ready() -> void:
 	_walls = StaticBody2D.new()
@@ -26,17 +32,25 @@ func _ready() -> void:
 	_crevices.set_collision_layer_value(CREVICE_LAYER, true)
 	add_child(_crevices)
 
-## Rebuilds collisions and art for a chapter. Chapters without a layout get no maze.
+## Rebuilds collisions and art for a chapter.
 func build(chapter: int) -> void:
 	theme = ["", "ocean", "gates", "palace", "ashoka", "rooftops"][clampi(chapter, 0, 5)]
-	_rows = MazeLayouts.LAYOUTS.get(chapter, [])
+	_rows = (MazeLayouts.LAYOUTS.get(chapter, []) as Array).duplicate()
+	rows = _rows.size()
+	cols = 0
+	for row in _rows:
+		cols = maxi(cols, String(row).length())
 	for body in [_walls, _crevices]:
 		for shape in body.get_children():
 			shape.free()
-	for y in _rows.size():
-		_add_runs(y, ["#", "X"], _walls)
+	for y in rows:
+		_add_runs(y, SOLID, _walls)
 		_add_runs(y, ["c"], _crevices)
+	_find_lamps()
 	queue_redraw()
+
+func world_rect() -> Rect2:
+	return Rect2(0, ORIGIN_Y, cols * CELL, rows * CELL)
 
 ## Merges horizontal runs of matching cells into single rectangle shapes.
 func _add_runs(y: int, kinds: Array, body: StaticBody2D) -> void:
@@ -72,13 +86,19 @@ func kind_at(cell: Vector2i) -> String:
 		return "X"
 	return _rows[cell.y][cell.x]
 
+func is_walkable(cell: Vector2i) -> bool:
+	return not kind_at(cell) in ["#", "X", "c"]
+
+func is_opaque(cell: Vector2i) -> bool:
+	return kind_at(cell) in OPAQUE
+
 func is_crevice(point: Vector2) -> bool:
 	return kind_at(cell_at(point)) == "c"
 
 func is_exit(point: Vector2) -> bool:
 	return kind_at(cell_at(point)) == "E"
 
-## Centre of the first cell marked `marker` (S, G, T, …), or `fallback` if absent.
+## Centre of the first cell marked `marker` (S, T, 1, …), or `fallback` if absent.
 func marker_position(marker: String, fallback: Vector2 = Vector2(50, 180)) -> Vector2:
 	for y in _rows.size():
 		var x: int = String(_rows[y]).find(marker)
@@ -86,33 +106,78 @@ func marker_position(marker: String, fallback: Vector2 = Vector2(50, 180)) -> Ve
 			return cell_center(Vector2i(x, y))
 	return fallback
 
-## True when no wall (#, X) or crevice blocks the straight line between two points.
+## Centres of every cell marked `marker` (guards, imp clusters, lotus pickups, …).
+func marker_positions(marker: String) -> Array[Vector2]:
+	var found: Array[Vector2] = []
+	for y in _rows.size():
+		var row: String = _rows[y]
+		for x in row.length():
+			if row[x] == marker:
+				found.append(cell_center(Vector2i(x, y)))
+	return found
+
+## Turns a pickup cell back into plain floor once collected.
+func consume(cell: Vector2i) -> void:
+	var row: String = _rows[cell.y]
+	_rows[cell.y] = row.substr(0, cell.x) + "." + row.substr(cell.x + 1)
+	queue_redraw()
+
+## True when nothing opaque blocks the straight line between two points.
 func has_line_of_sight(from: Vector2, to: Vector2) -> bool:
 	var steps := int(from.distance_to(to) / 6.0)
 	for i in range(1, steps):
-		if kind_at(cell_at(from.lerp(to, float(i) / steps))) in ["#", "X", "c"]:
+		if is_opaque(cell_at(from.lerp(to, float(i) / steps))):
 			return false
 	return true
 
-# --- Drawing ---------------------------------------------------------------------------
+## Palace wall lamps (light sources for the fog of war), as world points just below each lamp.
+func lamp_positions() -> Array[Vector2]:
+	return _lamps
+
+func _find_lamps() -> void:
+	_lamps.clear()
+	if theme != "palace":
+		return
+	for y in rows:
+		for x in String(_rows[y]).length():
+			var cell := Vector2i(x, y)
+			if kind_at(cell) == "#" and _is_lamp(cell):
+				_lamps.append(cell_center(cell) + Vector2(0, CELL * 0.6))
+
+func _is_lamp(cell: Vector2i) -> bool:
+	var below := cell + Vector2i.DOWN
+	return (cell.x * 7 + cell.y * 13) % 4 == 0 and is_walkable(below) and kind_at(below) != "X"
+
+# --- Drawing (only what the camera can see) ---------------------------------------------
 
 func _process(_delta: float) -> void:
 	if has_layout():
 		queue_redraw()
 
+func _visible_cells() -> Rect2i:
+	var view := get_viewport().get_canvas_transform().affine_inverse() * get_viewport_rect()
+	var a := cell_at(view.position) - Vector2i(1, 1)
+	var b := cell_at(view.end) + Vector2i(2, 2)
+	return Rect2i(a, b - a)
+
 func _draw() -> void:
+	if not has_layout():
+		return
 	var t := Time.get_ticks_msec() / 1000.0
-	for y in _rows.size():
-		for x in String(_rows[y]).length():
-			var kind: String = _rows[y][x]
+	var area := _visible_cells()
+	for y in range(maxi(0, area.position.y), mini(rows, area.end.y)):
+		var row: String = _rows[y]
+		for x in range(maxi(0, area.position.x), mini(row.length(), area.end.x)):
 			var cell := Vector2i(x, y)
-			match kind:
+			match row[x]:
 				"#": _draw_wall(cell, t)
+				"h": _draw_hidden(cell, t)
 				"c": _draw_crevice(cell, t)
 				"E": _draw_exit(cell, t)
+				"o": _draw_lotus(cell, t)
 
 func _is_solid(cell: Vector2i) -> bool:
-	return kind_at(cell) in ["#", "c"]
+	return kind_at(cell) in ["#", "c", "h"]
 
 ## Walls read as raised blocks: a lit top face, plus a darker front face where the floor
 ## is visible below. Each theme only changes palette and surface detail.
@@ -160,11 +225,11 @@ func _draw_wall(cell: Vector2i, t: float) -> void:
 			if open_below:
 				draw_rect(face, Color("#26294a"))
 				draw_rect(Rect2(face.position, Vector2(CELL, 1)), Color("#f7b945", 0.7))
-				if seed_v % 3 == 0:
+				if _is_lamp(cell):
 					# Wall lamp: flickering flame with a warm glow on the floor below.
 					var flick := 0.75 + 0.25 * sin(t * 11.0 + seed_v)
 					var lamp := face.position + Vector2(CELL * 0.5, 4)
-					draw_circle(lamp + Vector2(0, 14), 14.0, Color(0.97, 0.72, 0.27, 0.10 * flick))
+					draw_circle(lamp + Vector2(0, 16), 22.0, Color(0.97, 0.72, 0.27, 0.10 * flick))
 					draw_circle(lamp, 2.5 * flick, Color("#f7b945"))
 					draw_circle(lamp, 1.2, Color("#fbf4e2"))
 		"ashoka":
@@ -180,8 +245,21 @@ func _draw_wall(cell: Vector2i, t: float) -> void:
 				draw_rect(Rect2(p, Vector2(2, 2)), Color("#e86a82") if i == 0 else Color("#eb7e28"))
 			if open_below:
 				draw_rect(face, Color("#142319"))
+		"rooftops":
+			draw_rect(top, Color("#2c2834"))
+			draw_rect(Rect2(top.position, Vector2(CELL, 2)), Color("#eb7e28", 0.6))
+			if open_below:
+				draw_rect(face, Color("#16172e"))
 		_:
 			draw_rect(r, Color("#585266"))
+
+## Hidden passage: drawn like the wall around it, with a faint crack for sharp-eyed players.
+func _draw_hidden(cell: Vector2i, t: float) -> void:
+	_draw_wall(cell, t)
+	var r := Rect2(cell.x * CELL, ORIGIN_Y + cell.y * CELL, CELL, CELL)
+	var a := 0.25 + 0.15 * sin(t * 1.5 + cell.x)
+	draw_line(r.position + Vector2(12, 6), r.position + Vector2(16, 14), Color(0, 0, 0, a), 1.0)
+	draw_line(r.position + Vector2(16, 14), r.position + Vector2(13, 22), Color(0, 0, 0, a), 1.0)
 
 func _draw_crevice(cell: Vector2i, t: float) -> void:
 	_draw_wall(cell, t)
@@ -204,3 +282,13 @@ func _draw_exit(cell: Vector2i, t: float) -> void:
 		var cx := r.position.x + 10 + i * 6 + pulse * 2
 		draw_line(Vector2(cx, r.get_center().y - 5), Vector2(cx + 5, r.get_center().y), a, 2.0)
 		draw_line(Vector2(cx + 5, r.get_center().y), Vector2(cx, r.get_center().y + 5), a, 2.0)
+
+## Lotus pickup in a secret nook: restores health and devotion.
+func _draw_lotus(cell: Vector2i, t: float) -> void:
+	var c := cell_center(cell) + Vector2(0, sin(t * 2.0 + cell.x) * 1.5)
+	draw_circle(c, 11.0, Color(0.99, 0.89, 0.49, 0.12 + 0.06 * sin(t * 3.0)))
+	for i in 6:
+		var a := i * TAU / 6.0 + t * 0.4
+		draw_circle(c + Vector2.from_angle(a) * 4.0, 3.2, Color("#e86a82"))
+	draw_circle(c, 2.6, Color("#fce27c"))
+	draw_circle(c + Vector2(-1, -1), 1.0, Color("#fff6c8"))

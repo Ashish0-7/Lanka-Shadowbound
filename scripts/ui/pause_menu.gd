@@ -19,6 +19,9 @@ func _ready() -> void:
 	resume_button.pressed.connect(_on_resume_pressed)
 	restart_button.pressed.connect(_on_restart_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
+	# Moving off the Quit button cancels a pending "Really quit?".
+	resume_button.focus_entered.connect(_reset_quit_confirm)
+	restart_button.focus_entered.connect(_reset_quit_confirm)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
@@ -30,6 +33,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func open_pause_menu() -> void:
 	get_tree().paused = true
+	_reset_quit_confirm()
 	show()
 	resume_button.grab_focus()
 
@@ -48,7 +52,20 @@ func _on_restart_pressed() -> void:
 	hide()
 	restart_level_requested.emit()
 
+## Quit Game, with a confirm step so a stray press never ends a run:
+## the first press asks "Really quit?", the second press closes the game.
+var _confirm_quit := false
+
 func _on_quit_pressed() -> void:
-	get_tree().paused = false
-	hide()
+	if not _confirm_quit:
+		_confirm_quit = true
+		quit_button.text = "Really quit?"
+		if has_node("/root/AudioManager"):
+			get_node("/root/AudioManager").play_sfx("telegraph", -6.0)
+		return
 	quit_to_title_requested.emit()
+	get_tree().quit()
+
+func _reset_quit_confirm() -> void:
+	_confirm_quit = false
+	quit_button.text = "Quit Game"

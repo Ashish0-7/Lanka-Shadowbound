@@ -45,13 +45,47 @@ func _ready() -> void:
 	player.attack_started.connect(_on_attack_started)
 	player.charge_ready.connect(_on_charge_ready)
 	player.spin_performed.connect(_on_spin)
+	player.flight_changed.connect(_on_flight_changed)
 	GameEvents.player_health_changed.connect(_on_health_changed)
 	GameEvents.shrink_ability_updated.connect(_on_shrink_updated)
 
 func _process(delta: float) -> void:
 	_impact_timer = maxf(0.0, _impact_timer - delta)
+	_update_flight_pose(delta)
 	_shadow.queue_redraw()
 	queue_redraw()
+
+# --- Divine flight ------------------------------------------------------------------------
+
+## 0 = standing, 1 = fully airborne in the horizontal soaring pose.
+var _fly_blend := 0.0
+const FLIGHT_LIFT := 13.0
+
+func _on_flight_changed(active: bool) -> void:
+	var world := get_parent().get_parent()
+	if active:
+		if _pose_tween and _pose_tween.is_valid():
+			_pose_tween.kill()
+		_arc_visible = false
+		VFXImpact.sparks(world, player.global_position + Vector2(0, 10), Color(1.0, 0.95, 0.75), 10)
+		if has_node("/root/AudioManager"):
+			get_node("/root/AudioManager").play_layered(["whoosh", "shrink"], -5.0)
+	else:
+		VFXImpact.shockwave(world, player.global_position + Vector2(0, 14), 22.0, Color(0.85, 0.78, 0.62), 0.45)
+		_sfx("impact", -8.0, 0.8)
+
+## Tilts Hanuman flat (head toward his heading) and lifts him while flying; settles him back after.
+func _update_flight_pose(delta: float) -> void:
+	var target := 1.0 if player.is_flying() else 0.0
+	if is_equal_approx(_fly_blend, target) and target == 0.0:
+		return
+	_fly_blend = move_toward(_fly_blend, target, delta * 7.0)
+	var bob := sin(Time.get_ticks_msec() / 1000.0 * 6.0) * 1.5 * _fly_blend
+	sprite.rotation = PI * 0.5 * player.flight_dir * _fly_blend
+	sprite.position.y = -(FLIGHT_LIFT * _fly_blend) + bob
+	if _fly_blend <= 0.0:
+		sprite.rotation = 0.0
+		sprite.position = Vector2.ZERO
 
 # --- Attacks ----------------------------------------------------------------------------
 
@@ -175,6 +209,14 @@ func _draw() -> void:
 		for i in 4:
 			var rise := fposmod(t * 30.0 + i * 9.0, 24.0)
 			draw_rect(Rect2(Vector2(-10 + i * 6, 10 - rise), Vector2.ONE), Color(ARC_COLOR, 1.0 - rise / 24.0))
+	# Flight: golden wind streaks streaming behind him.
+	if _fly_blend > 0.05:
+		var back := -float(player.flight_dir)
+		for i in 6:
+			var drift := fposmod(t * 90.0 + i * 13.0, 34.0)
+			var y := -FLIGHT_LIFT - 8.0 + i * 3.5
+			var x := back * (10.0 + drift)
+			draw_line(Vector2(x, y), Vector2(x + back * 9.0, y), Color(1.0, 0.92, 0.6, (0.6 - drift / 60.0) * _fly_blend), 1.0)
 	# Giant form: a radiant golden aura.
 	if player.is_giant():
 		var pulse := 0.5 + 0.5 * sin(t * 6.0)
@@ -198,8 +240,10 @@ func _draw() -> void:
 
 func _draw_shadow() -> void:
 	var size := 0.5 if player.is_shrunk() else 1.0
-	_shadow.draw_set_transform(Vector2(0, 15 * size), 0.0, Vector2(1.0, 0.35))
-	_shadow.draw_circle(Vector2.ZERO, 8.0 * size, Color(0, 0, 0, 0.32))
+	# Airborne: the shadow stays on the ground, smaller and fainter, stretched along his body.
+	var stretch := 1.0 + 0.6 * _fly_blend
+	_shadow.draw_set_transform(Vector2(0, 15 * size), 0.0, Vector2(stretch, 0.35))
+	_shadow.draw_circle(Vector2.ZERO, 8.0 * size * (1.0 - 0.25 * _fly_blend), Color(0, 0, 0, 0.32 - 0.12 * _fly_blend))
 
 func _sfx(sound: String, volume_db: float, pitch: float) -> void:
 	if has_node("/root/AudioManager"):

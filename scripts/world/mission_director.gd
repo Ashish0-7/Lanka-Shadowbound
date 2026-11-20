@@ -8,14 +8,14 @@ const LEVEL_NAMES := ["", "CROSSING THE OCEAN", "THE GATES OF LANKA", "LANKA AT 
 const LEVEL_OBJECTIVES := ["", "Shrink with [SHIFT] to pass Surasa, then cross the sea.", "Strike Lankini with [J] when you are close.", "Search the palace and avoid the guards' sight.", "Find Sita and present Rama's ring.", "Run across the burning rooftops and reach the ocean."]
 
 @onready var player = get_parent().get_node("Hanuman")
-@onready var dialogue: DialogueBox = get_parent().get_node("DialogueBox")
-@onready var notification: ObjectiveNotification = get_parent().get_node("ObjectiveNotification")
-@onready var tutorial: TutorialHint = get_parent().get_node("TutorialHint")
-@onready var map_overlay: MapRevealOverlay = get_parent().get_node("MapRevealOverlay")
+@onready var dialogue: DialogueBox = get_parent().get_node("UI/DialogueBox")
+@onready var notification: ObjectiveNotification = get_parent().get_node("UI/ObjectiveNotification")
+@onready var tutorial: TutorialHint = get_parent().get_node("UI/TutorialHint")
+@onready var map_overlay: MapRevealOverlay = get_parent().get_node("UI/MapRevealOverlay")
 @onready var overlay: CinematicOverlay = get_parent().get_node("CinematicOverlay")
 ## World-space UI hidden while a cinematic plays (it would zoom with the camera otherwise).
 @onready var gameplay_ui: Array[CanvasItem] = [
-	get_parent().get_node("HUD"), tutorial, notification, get_parent().get_node("InteractionPrompt"),
+	get_parent().get_node("UI/HUD"), tutorial, notification, get_parent().get_node("UI/InteractionPrompt"),
 ]
 
 const CHAPTER_TAGLINES := ["", "Hanuman leaps across the ocean in search of Sita.", "Lankini guards the gates of the golden city.", "Slip through the sleeping palace unseen.", "In the grove of Ashoka, Sita waits.", "Lanka burns. Race for the sea!"]
@@ -28,10 +28,14 @@ var encounters: BossEncounters
 var maze: LevelMaze
 var backdrop: ChapterBackdrop
 const NPC_DIR := "res://assets/characters/npcs/"
-var guard_sprite: AnimatedSprite2D
+var guard_sprites: Array[AnimatedSprite2D] = []
+var guard_posts: Array[Vector2] = []
 var mandodari_sprite: AnimatedSprite2D
 var sita_sprite: AnimatedSprite2D
-var guard_post := Vector2.ZERO
+var fog: FogOfWar
+@onready var camera: CameraRig = player.get_node("Camera2D")
+## Chapter 5: the burning stretch of rooftops that scorches Hanuman.
+var fire_zone := Rect2()
 var sita_position := Vector2.ZERO
 var cinematic_playing := false
 var _knock_velocity := Vector2.ZERO
@@ -50,7 +54,7 @@ func _ready() -> void:
 	z_index = -10
 	player.connect("attack_performed", Callable(self, "_on_player_attack"))
 	dialogue.dialogue_completed.connect(_on_dialogue_completed)
-	get_parent().get_node("PauseMenu").restart_level_requested.connect(func(): _start_chapter(chapter))
+	get_parent().get_node("UI/PauseMenu").restart_level_requested.connect(func(): _start_chapter(chapter))
 	backdrop = ChapterBackdrop.new()
 	backdrop.name = "Backdrop"
 	backdrop.z_index = -1
@@ -59,7 +63,6 @@ func _ready() -> void:
 	maze.name = "Maze"
 	add_child(maze)
 	backdrop.maze = maze
-	guard_sprite = _make_npc("Guard", {"idle": [[NPC_DIR + "char_guard_rakshasa_01.png", NPC_DIR + "char_guard_rakshasa_02.png"], 5.0]})
 	mandodari_sprite = _make_npc("Mandodari", {"idle": [[NPC_DIR + "char_mandodari_idle.png"], 1.0]})
 	# Sita: sorrowful with an occasional blink, then joyful once Hanuman finds her.
 	var sad := []
@@ -77,28 +80,114 @@ func _ready() -> void:
 	swarm.player = player
 	add_child(swarm)
 	swarm.minions_killed.connect(_on_minions_killed)
-	swarm.player_nipped.connect(func(damage: int, from: Vector2): hurt_player(damage, from, 16.0))
+	# Imps nip at the ground: a flying Hanuman is out of reach.
+	swarm.player_nipped.connect(func(damage: int, from: Vector2): if not player.is_flying(): hurt_player(damage, from, 16.0))
+	player.flight_changed.connect(_on_flight_changed)
 	player.spin_performed.connect(_on_player_spin)
+	fog = FogOfWar.new()
+	fog.name = "FogOfWar"
+	fog.z_index = 8
+	fog.maze = maze
+	fog.player = player
+	fog.swarm = swarm
+	add_child(fog)
 	_add_devotion(0.0)
 	encounters.lankini_defeated.connect(_on_lankini_defeated)
 	encounters.lankini_health_changed.connect(overlay.set_boss_health)
 	# main.tscn boots straight into play (the menu is not in the flow yet), so start music here.
 	if has_node("/root/AudioManager"):
 		get_node("/root/AudioManager").play_music()
+	# Deferred: the UI, cinematic overlay and story cards come after the director in main.tscn.
+	call_deferred("_begin_game")
+
+# --- Story frame: opening, run stats, ending ------------------------------------------------
+
+const OPENING := [
+	{"art": "abduction", "sfx": "telegraph", "text": "Ravana, the ten-headed king of Lanka, seized Sita from the forest and carried her away across the sea."},
+	{"art": "grief", "sfx": "water", "text": "Rama searched for her in grief, while the vanara army gathered on the southern shore."},
+	{"art": "ring", "sfx": "objective", "text": "To Hanuman, Rama gave his ring: \"Show this to Sita, so she knows I am coming for her.\""},
+	{"art": "leap", "sfx": "transition", "text": "From the peak of Mount Mahendra, Hanuman leapt across the ocean towards Lanka."},
+]
+const ENDING := [
+	{"art": "return", "sfx": "fire", "text": "With Lanka ablaze behind him, Hanuman leapt back across the ocean."},
+	{"art": "chudamani", "sfx": "objective", "text": "He placed Sita's chudamani in Rama's hands: \"I have seen her, my Lord. She waits for you.\""},
+	{"art": "jai", "sfx": "victory", "text": "JAI SHRI RAM!", "big": true, "hold": 3.5},
+]
+
+@onready var story: StoryCards = get_parent().get_node("StoryCards")
+var run_seconds := 0.0
+var imps_smashed := 0
+var secrets_found := 0
+var defeats := 0
+var jai_count := 0
+var _ending_started := false
+
+func _begin_game() -> void:
+	_set_cinematic(true)
+	await story.play(OPENING)
+	_set_cinematic(false)
 	_start_chapter(1)
+
+static func _count_secrets() -> int:
+	var total := 0
+	for chapter in MazeLayouts.LAYOUTS:
+		for row in MazeLayouts.LAYOUTS[chapter]:
+			total += String(row).count("o")
+	return total
+
+## The finale: the leap home, the chudamani, Jai Shri Ram, then the results card.
+func _show_ending() -> void:
+	if _ending_started:
+		return
+	_ending_started = true
+	GameEvents.objective_updated.emit("Journey complete", true)
+	_set_cinematic(true)
+	await story.play(ENDING)
+	var stars := 1
+	if defeats <= 2:
+		stars = 2
+	if defeats == 0 and secrets_found * 2 >= _count_secrets():
+		stars = 3
+	await story.results({
+		"seconds": run_seconds, "imps": imps_smashed, "secrets": secrets_found,
+		"secrets_total": _count_secrets(), "jai": jai_count, "deaths": defeats, "stars": stars,
+	})
+	get_tree().reload_current_scene()
 
 func _process(delta: float) -> void:
 	hazard_cooldown = maxf(0.0, hazard_cooldown - delta)
 	queue_redraw()
 	if cinematic_playing:
 		return
+	run_seconds += delta
 	swarm.update(delta)
+	_collect_pickups()
 	match chapter:
 		1: _update_ocean(delta)
 		2: _update_gates(delta)
 		3: _update_night(delta)
 		4: _update_vatika()
 		5: _update_escape(delta)
+
+## Lotus flowers hidden in secret rooms restore health and devotion.
+func _collect_pickups() -> void:
+	var cell := maze.cell_at(player.global_position)
+	if maze.kind_at(cell) != "o":
+		return
+	maze.consume(cell)
+	secrets_found += 1
+	player.health = mini(player.max_health, player.health + 25)
+	GameEvents.player_health_changed.emit(player.health, player.max_health)
+	_add_devotion(15.0)
+	VFXImpact.sparks(self, maze.cell_center(cell), Color(0.91, 0.42, 0.51), 14)
+	FloatingText.spawn(self, maze.cell_center(cell) + Vector2(0, -14), "LOTUS +25", Color(0.99, 0.75, 0.82), 11)
+	_play_sfx("objective", -4.0)
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	# F11 toggles between fullscreen and a window.
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
+		var fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if fullscreen else DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 func _start_chapter(number: int) -> void:
 	chapter = number
@@ -107,14 +196,30 @@ func _start_chapter(number: int) -> void:
 	_knock_velocity = Vector2.ZERO
 	_sita_farewell = -1.0
 	maze.build(number)
-	backdrop.chapter = number
-	guard_post = maze.marker_position("G", Vector2.ZERO) if number == 3 else Vector2.ZERO
-	guard_sprite.visible = guard_post != Vector2.ZERO
-	guard_sprite.position = guard_post
-	backdrop.guard_position = guard_post
+	var world := maze.world_rect()
+	player.world_rect = world
+	encounters.place_from_maze(maze)
+	# Guards: one rakshasa per G marker.
+	for g in guard_sprites:
+		g.queue_free()
+	guard_sprites.clear()
+	guard_posts = maze.marker_positions("G")
+	for post in guard_posts:
+		var g := _make_npc("Guard", {"idle": [[NPC_DIR + "char_guard_rakshasa_01.png", NPC_DIR + "char_guard_rakshasa_02.png"], 5.0]})
+		g.position = post
+		g.visible = true
+		guard_sprites.append(g)
 	sita_position = maze.marker_position("T", Vector2.ZERO) if number == 4 else Vector2.ZERO
+	fire_zone = Rect2(world.position.x + 180, ChapterBackdrop.HORIZON, world.size.x - 320, world.end.y - ChapterBackdrop.HORIZON) if number == 5 else Rect2()
+	backdrop.chapter = number
+	backdrop.guards = guard_posts
 	backdrop.sita_position = sita_position
 	backdrop.sita_found = false
+	backdrop.surasa_position = encounters.SURASA_POS if number == 1 else Vector2.ZERO
+	backdrop.simhika_position = encounters.SIMHIKA_POS if number == 1 else Vector2.ZERO
+	backdrop.lankini_position = encounters.LANKINI_POS if number == 2 else Vector2.ZERO
+	backdrop.fire_zone = fire_zone
+	backdrop.refresh()
 	sita_sprite.visible = sita_position != Vector2.ZERO
 	sita_sprite.position = sita_position + Vector2(0, -6)
 	sita_sprite.play("sad")
@@ -123,8 +228,16 @@ func _start_chapter(number: int) -> void:
 	mandodari_sprite.position = queen_at + Vector2(0, -4)
 	player.global_position = maze.marker_position("S", Vector2(50, 180))
 	player.restore_health()
-	map_overlay.visible = number == 3
+	camera.set_world(world)
+	# The old screen-space map overlay is replaced by the world-space fog of war.
+	map_overlay.visible = false
 	map_overlay.clear_reveal()
+	fog.guards = guard_posts
+	# Fog only where it fits the story: the night palace and the moonlit grove.
+	match number:
+		3: fog.configure(true, 4.5, 0.6, Color("#05040c"))
+		4: fog.configure(true, 6.0, 0.45, Color("#030a06"))
+		_: fog.configure(false)
 	backdrop.guard_alert = 0.0
 	GameEvents.stealth_alert_level_changed.emit(0.0, false)
 	encounters.reset_for_chapter(number)
@@ -215,7 +328,7 @@ func _begin_chapter_play(number: int) -> void:
 	elif number == 3:
 		tutorial.show_preset("stealth", 4.0)
 	elif number == 5:
-		GameEvents.encounter_feedback.emit("Hanuman's tail burns—run!")
+		GameEvents.encounter_feedback.emit("Hanuman's tail burns! Double-tap [SPACE] to fly over the flames!")
 
 func _advance_chapter() -> void:
 	GameEvents.objective_updated.emit("Complete", true)
@@ -264,20 +377,22 @@ func _on_lankini_defeated() -> void:
 	_advance_chapter()
 
 func _update_night(delta: float) -> void:
-	var cell := Vector2i(int(player.global_position.x / 32.0), int(player.global_position.y / 30.0))
-	GameEvents.reveal_map_cell(cell)
-	# The guard only notices Hanuman when close AND with a clear line of sight: walls are cover.
-	var seen: bool = player.global_position.distance_to(guard_post) < backdrop.guard_radius \
-		and maze.has_line_of_sight(guard_post, player.global_position)
+	# A guard only notices Hanuman when close AND with a clear line of sight: walls are cover.
+	var seen := false
+	for post in guard_posts:
+		if player.global_position.distance_to(post) < backdrop.guard_radius and maze.has_line_of_sight(post, player.global_position):
+			seen = true
 	guard_alert = move_toward(guard_alert, 1.0 if seen else 0.0, delta * (0.9 if seen else 0.6))
 	backdrop.guard_alert = guard_alert
-	guard_sprite.modulate = Color.WHITE.lerp(Color(1.0, 0.5, 0.45), guard_alert)
+	for g in guard_sprites:
+		g.modulate = Color.WHITE.lerp(Color(1.0, 0.5, 0.45), guard_alert)
 	GameEvents.stealth_alert_level_changed.emit(guard_alert, guard_alert > 0.92)
 	if guard_alert > 0.92:
 		_warn_or_damage("A guard has spotted you—retreat into shadow.")
-	# Meeting the sleeping queen triggers Hanuman's mistake (fallback: deep into the palace).
-	var near_queen: bool = player.global_position.distance_to(mandodari_sprite.position) < 48.0
-	if not dialogue_seen and (near_queen or player.global_position.x > 400.0):
+	# Meeting the sleeping queen triggers Hanuman's mistake (fallback: well past her chamber).
+	var queen: Vector2 = mandodari_sprite.position
+	var near_queen: bool = player.global_position.distance_to(queen) < 48.0
+	if not dialogue_seen and (near_queen or player.global_position.x > queen.x + 260.0):
 		dialogue_seen = true
 		dialogue.play_mandodari_misunderstanding_scene()
 	if dialogue_seen and not dialogue.is_active and maze.is_exit(player.global_position):
@@ -298,7 +413,7 @@ func _update_vatika() -> void:
 			_advance_chapter()
 
 func _update_escape(_delta: float) -> void:
-	if player.global_position.x > 180 and player.global_position.x < 520 and hazard_cooldown <= 0.0:
+	if fire_zone.has_point(player.global_position) and hazard_cooldown <= 0.0 and not player.is_flying():
 		player.take_damage(7)
 		hazard_cooldown = 1.0
 		GameEvents.encounter_feedback.emit("Flames scorch the rooftops—keep moving!")
@@ -323,6 +438,7 @@ func _on_player_spin(origin: Vector2) -> void:
 		_add_devotion(8.0)
 
 func _on_minions_killed(count: int, at: Vector2) -> void:
+	imps_smashed += count
 	if not player.is_giant():
 		_add_devotion(10.0 * count + (10.0 if count >= 3 else 0.0))
 	_play_sfx("impact", -3.0)
@@ -334,7 +450,7 @@ func _on_minions_killed(count: int, at: Vector2) -> void:
 	else:
 		FloatingText.spawn(self, at + Vector2(0, -10), "+%d" % (10 * count), Color(0.99, 0.95, 0.75), 9)
 	# Fighting in the palace is noisy: the guard grows suspicious.
-	if chapter == 3 and guard_post != Vector2.ZERO:
+	if chapter == 3 and not guard_posts.is_empty():
 		guard_alert = minf(0.9, guard_alert + 0.12 * count)
 
 func _add_devotion(amount: float) -> void:
@@ -349,6 +465,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Full devotion: Hanuman roars "Jai Shri Ram!", grows giant, every imp on screen is
 ## destroyed and the bosses are stunned.
 func _jai_shri_ram() -> void:
+	jai_count += 1
 	devotion = 0.0
 	_add_devotion(0.0)
 	player.activate_giant(GIANT_SECONDS)
@@ -382,6 +499,7 @@ func hurt_player(amount: int, source: Vector2, knockback: float, message: String
 	if message != "":
 		GameEvents.encounter_feedback.emit(message)
 	if player.health <= 0:
+		defeats += 1
 		if has_node("/root/AudioManager"):
 			get_node("/root/AudioManager").play_sfx("defeat", -1.0)
 		_start_chapter(chapter)
@@ -391,9 +509,9 @@ func hurt_player(amount: int, source: Vector2, knockback: float, message: String
 		# Applied in _physics_process with collisions, so knockback never shoves him into a wall.
 		_knock_velocity = direction * knockback * 12.0
 
-func _show_ending() -> void:
-	set_process(false)
-	GameEvents.objective_updated.emit("Journey complete", true)
-	notification.notify("MISSION COMPLETE", "LANKA SHADOWBOUND", "Hanuman returns across the ocean with hope for Rama and Sita.", true)
-	if has_node("/root/AudioManager"):
-		get_node("/root/AudioManager").play_sfx("victory", -2.0)
+var _flight_hint_shown := false
+
+func _on_flight_changed(active: bool) -> void:
+	if active and not _flight_hint_shown:
+		_flight_hint_shown = true
+		GameEvents.encounter_feedback.emit("Divine flight! Soar over fire, imps and shockwaves.")

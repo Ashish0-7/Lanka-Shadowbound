@@ -210,6 +210,12 @@ func play_sita_ring_handover_scene() -> void:
 			"portrait_path": "res://assets/ui/portraits/portrait_hanuman.png",
 			"text": "Rama's army will soon bridge the ocean, Mother. Lanka's walls will crumble. Take courage!",
 			"blip_sound": "hero"
+		},
+		{
+			"speaker_name": "Sita",
+			"portrait_path": "res://assets/ui/portraits/portrait_sita.png",
+			"text": "[She unclasps the jewel from her hair] Take my chudamani to Rama, my son. Let it tell Him that I still wait for Him.",
+			"blip_sound": "reverent"
 		}
 	]
 	start_dialogue(sequence)

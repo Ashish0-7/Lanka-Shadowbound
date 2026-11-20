@@ -10,13 +10,8 @@ signal player_nipped(damage: int, from: Vector2)
 
 const MINION_DIR := "res://assets/characters/enemies/minions/"
 const VARIANT := {1: "sea", 2: "gate", 3: "shadow", 4: "thorn"}
-## Clusters per chapter: [cell, how many]. Kept away from the start and boss arenas.
-const CLUSTERS := {
-	1: [[Vector2i(6, 10), 3], [Vector2i(15, 10), 3]],
-	2: [[Vector2i(4, 8), 3], [Vector2i(8, 6), 3]],
-	3: [[Vector2i(4, 9), 2], [Vector2i(14, 10), 3], [Vector2i(14, 4), 2]],
-	4: [[Vector2i(4, 9), 3], [Vector2i(9, 6), 3], [Vector2i(15, 8), 3], [Vector2i(10, 4), 2]],
-}
+## Clusters come from "m" markers in the chapter map (CLUSTER_SIZE imps each).
+const CLUSTER_SIZE := 3
 const SPEED := 58.0
 const AGGRO_RANGE := 150.0
 const NIP_RANGE := 15.0
@@ -31,20 +26,19 @@ var _frames_cache: Dictionary = {}
 ## Spawns this chapter's clusters (none for chapters without an entry).
 func spawn(chapter: int) -> void:
 	clear()
-	if not CLUSTERS.has(chapter):
+	if not VARIANT.has(chapter):
 		return
 	var variant: String = VARIANT[chapter]
 	var frames := _frames(variant)
-	for cluster in CLUSTERS[chapter]:
-		var centre := maze.cell_center(cluster[0])
-		for i in cluster[1]:
+	for centre in maze.marker_positions("m"):
+		for i in CLUSTER_SIZE:
 			var sprite := AnimatedSprite2D.new()
 			sprite.sprite_frames = frames
 			sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			sprite.z_index = 1
 			sprite.play("walk")
 			sprite.frame = i % 2
-			var offset := Vector2.from_angle(i * TAU / maxf(cluster[1], 1)) * 8.0
+			var offset := Vector2.from_angle(i * TAU / CLUSTER_SIZE) * 8.0
 			sprite.position = centre + offset
 			add_child(sprite)
 			_minions.append({"sprite": sprite, "home": centre + offset, "state": "idle",
@@ -142,7 +136,7 @@ func _path(from: Vector2i, to: Vector2i) -> Array:
 			if not prev.has(n) and not maze.kind_at(n) in ["#", "X", "c"]:
 				prev[n] = cell
 				queue.append(n)
-				if prev.size() > 160:
+				if prev.size() > 400:
 					return []
 	return []
 

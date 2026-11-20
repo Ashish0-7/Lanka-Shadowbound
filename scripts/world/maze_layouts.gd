@@ -1,102 +1,149 @@
 class_name MazeLayouts
 extends RefCounted
 
-## Hand-authored maze grids, one per chapter. 20 columns × 11 rows of 32 px cells
-## (LevelMaze.CELL), drawn from y = LevelMaze.ORIGIN_Y. Edit freely — tools/check_mazes.gd
-## verifies every maze is solvable and keeps boss areas clear.
+## Chapter maps: text grids of 32 px cells, each several screens large (the camera follows
+## Hanuman, so only part of the map is ever visible). Generated with tools/gen_level.gd and
+## hand-tuned; tools/check_mazes.gd verifies every map is solvable.
 ##
-##   X  scenery (blocks movement, not drawn — the sky/skyline band and space under the HUD)
+##   X  scenery (sky band along the top; blocks movement, not drawn as wall)
 ##   #  wall (drawn in the chapter's theme)
+##   h  hidden passage: looks like wall, but Hanuman can walk through it
 ##   c  crevice — only passable while Hanuman is shrunk [SHIFT]
-##   .  open floor
-##   S  Hanuman's start
-##   E  exit (reaching it completes the chapter, where the chapter has one)
-##   G  guard post (Chapter 3)
-##   T  Sita beneath the Ashoka tree (Chapter 4)
-##   M  Queen Mandodari, asleep in the palace (Chapter 3)
+##   .  open floor          S  start          E  exit
+##   o  lotus (secret rooms): +25 health, +15 devotion
+##   m  imp cluster         G  palace guard   M  Queen Mandodari   T  Sita
+##   1  Surasa   2  Simhika   3  Lankini
 ##
-## Difficulty rises 1 → 4. Chapter 5 is a different kind of level and has no maze.
+## Difficulty rises 1 → 4. Chapter 5 is an open rooftop run.
 
 const LAYOUTS := {
-	# Crossing the Ocean — gentle reef maze. Surasa's jaws (cols 9–13) span every row,
-	# so she cannot be walked around. A crevice offers a shrink-only shortcut.
+	# Crossing the Ocean — a long reef-strewn crossing (61×15). Surasa's jaws span the whole
+	# sea, Simhika lurks near the far shore of Lanka.
 	1: [
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXX..#...........",
-		"......#.#.........#.",
-		"S.....#.#.........#E",
-		"......c...........#E",
-		"..#...####...#......",
-		"..#.........##...#..",
-		"..####..#.......##..",
-		"........#...........",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"..............................................###......#.#..E",
+		".......#.....#.............#.#........m........###..........E",
+		".......###...#.....#..........#...............##.......##...E",
+		".........#.##......#........#.............#......#.m........E",
+		".....................................####...................E",
+		"..............................#.#......##.......#...........E",
+		"S..........................1..#......##....2...##....#.#....E",
+		"......##........................................#...........E",
+		".......##...#.....#.#.......................................E",
+		"......##.....#......#......................#.##.............E",
+		".............................................##....m........E",
+		"......#.......................................#.............E",
 	],
-	# The Gates of Lanka — stone courtyards lead to Lankini's open arena (cols 13–19).
+	# The Gates of Lanka — courtyards and colonnades (41×23) climb to Lankini at the gate.
 	2: [
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXX#######.......",
-		"S..#...#............",
-		"##.#.###.#.##.......",
-		"...#.....#..........",
-		".#.#.#######........",
-		".....#..............",
-		".#####.#####........",
-		".......#............",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"###########...................###########",
+		"###########.####.........####.###########",
+		"###########...##....3.....#..........####",
+		"#############.##..........#.#.######.####",
+		"#...........#.##..........#.#.....#.....#",
+		"#.#.........#.##..........#.#.....#.....#",
+		"#.#.........#.###.........#.......#.m...#",
+		"#.#.......m.#.#########.###.#######.....#",
+		"#.#.........#.###................##.....#",
+		"#.###.#######.###.####.######.##.####.###",
+		"#.###.........###.#.........#.......#...#",
+		"#.#####.##.######.#.....###.........###.#",
+		"#.......#.......#.#.....###.#.......#...#",
+		"#######.#.......#.#.....###.#.......#.###",
+		"###.m...#.......#.#.....###.#.........###",
+		"###.#####......m#.#.....###.#####h#######",
+		"#.....###.......#.#.....###.....#.....###",
+		"#.....###.......#.###########.#.#..o..###",
+		"#.....###.......#...S.........#.#.....###",
+		"#########################################",
 	],
-	# Lanka at Night — palace corridors with loops. Walls block the guard's line of sight.
+	# Lanka at Night — a sprawling palace (45×29): halls, corridors, four guards, the sleeping
+	# queen, and two secret rooms behind hidden passages. Fog of war; lamps light the halls.
 	3: [
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXX##############",
-		"S#......M..#.......#",
-		".#.#.#.###.#.#####.#",
-		".#.#...#.#.#.#.G.#.E",
-		".#####.#.#.#.#.#.###",
-		"...#...#...#...#...#",
-		".#.#.###.#.#######.#",
-		".....#.............#",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"#############.............................###",
+		"#############.#######..##.###############.###",
+		"#.....###...#.###.......#...........###....##",
+		"#.###.###.#.#.###.......###.........###.##.##",
+		"#...#.....#...###.......###.................#",
+		"###.##.######.###...G...###.........#.......#",
+		"###.#.........###.......###.........#...G...#",
+		"###.#.........###.......###..m......#.......#",
+		"###.#.........###.......###.........#.......#",
+		"###.#.........#########h#######.###.#########",
+		"#...#.........#.....###.....###...#.........#",
+		"#.###.........#..o..#.#..o..#####.#########.#",
+		"#S###.........#.....###.....#####.#.......#.#",
+		"#.##########.#####h##############.#.......#.#",
+		"#.....###.....###..m..........#...#........m#",
+		"#.###.###..G..###.........###.#.#####.#####.#",
+		"#.#.....#.................###...#...........#",
+		"#.#.....#######################.#.#.#######.#",
+		"#.#.....#.........###.........#...#.......#.#",
+		"#.#######....Gm...###.........###.#.......#.#",
+		"#.................###.............#.......#.#",
+		"###.#################.........#####.......#.#",
+		"###.......###..######.........#####.......#.#",
+		"###..M..#.###.#######.........#####........E#",
+		"###...........#######.........#####.......###",
+		"#############################################",
 	],
-	# Ashoka Vatika — the hardest maze: long winding hedges and dead ends, ending at Sita.
-	# Crevices (c) are shrink-only shortcuts.
+	# Ashoka Vatika — a vast hedge labyrinth (41×31) with crevices and a secret nook; Sita waits
+	# at its far end. Moonlit fog of war.
 	4: [
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXX##############",
-		"S..c.......#.....#T#",
-		"##.#.#####.#.###.#.#",
-		".#.#.#.....#...#...#",
-		".#.#.#.#####.#.#c###",
-		"...#.#.#...#.#.....#",
-		".###.#.#.#.#######.#",
-		".....#...#.........#",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"#.....#...#.....#.#.....#.....#...#.....#",
+		"#####.#.#.#.#.#.#.#.#.#.###.#.#.#.#.###m#",
+		"#.#...#.#...#.#...#.#.#.....#.#.#.#.#...#",
+		"#.#.#####.###.#####.#.#######.#.#.#.#.###",
+		"#.#m....#...#.#.....#.....#.....#.#T#...#",
+		"#.#.###.###.#.#.#####.#.#.#######.#####.#",
+		"#.#.....#.#.#...#.....#.#...#...#.#...#.#",
+		"#.#.#####.#.#####.#.###.###.###.#.#.#.#.#",
+		"#.#.....#.......#.#.#...#.#...#.#.#.#.#.#",
+		"#.#####.#.#######.###.###.###.#m#.c.#.#.#",
+		"#...#.#.#.#.....#...#.......#.#.#.#.#...#",
+		"#.#.#.#.###.###.#.#.#####.###.#.#.#.###.#",
+		"#.#...#.#...#.#.#.#.....#.#...#.#...#...#",
+		"#S#####.#.###...#####.###.#.###.#####.###",
+		"#.......#...#.#...#...#...#...#...#...#.#",
+		"#.#######.#.#.###.#.#.#.#####.#.###.###.#",
+		"#...#.m...#.#.#.....#.#...#...#...#.#...#",
+		"###.#.#####.#.#.#########.#.#####.#.#c#m#",
+		"#.#.c.#.....#...#.........#.....#.#...#.#",
+		"#.#.#.#.#.####c##.#.#####m#####.#.###.#.#",
+		"#.#.#.#.#.#.......#.......#...#.#...#...#",
+		"#.#.#.#.###.#####.#.###.#.#.#.#.#.#####.#",
+		"#.#.#.#.......ho#...#.#...#.#.......#...#",
+		"#.#.#.###########.###.#.#.#.#######.#.###",
+		"#.#.#.....#...#...#.......#.......#.#...#",
+		"#.#.#######.#.#.###.###.#.#######.#.###.#",
+		"#...........#...#.....#...........#.....#",
+		"#########################################",
 	],
-	# The Escape — no maze: open burning rooftops, a dash to the sea (right edge).
+	# The Escape — a long run (41×13) across burning rooftops to the sea.
 	5: [
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXXXXXXXXXXXXXXXX",
-		"XXXXXX.............E",
-		"...................E",
-		"S..................E",
-		"...................E",
-		"...................E",
-		"...................E",
-		"...................E",
-		"...................E",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+		"........................................E",
+		"........................................E",
+		"........................................E",
+		"........................................E",
+		"S.......................................E",
+		"........................................E",
+		"........................................E",
+		"........................................E",
+		"........................................E",
+		"........................................E",
 	],
-}
-
-## Areas that must stay walkable (boss sprites / arenas), as Rect2i of cells: chapter → rects.
-const KEEP_CLEAR := {
-	1: [Rect2i(9, 4, 4, 3), Rect2i(14, 4, 3, 3)],
-	2: [Rect2i(14, 3, 6, 7)],
-	3: [],
-	4: [],
-	5: [],
 }
