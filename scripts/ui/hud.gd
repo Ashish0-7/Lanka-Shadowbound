@@ -161,7 +161,7 @@ func show_feedback(text: String) -> void:
 	_feedback_panel.visible = true
 	_feedback_panel.reset_size()
 	var panel_size := _feedback_panel.get_combined_minimum_size()
-	_feedback_panel.position = Vector2((size.x - panel_size.x) * 0.5, 258.0)
+	_feedback_panel.position = Vector2((size.x - panel_size.x) * 0.5, size.y - 102.0)
 	if _feedback_tween and _feedback_tween.is_valid():
 		_feedback_tween.kill()
 	_feedback_tween = create_tween()

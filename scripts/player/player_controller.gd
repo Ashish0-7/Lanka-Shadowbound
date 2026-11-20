@@ -31,6 +31,19 @@ var _charged: bool = false
 const GIANT_SCALE := 1.8
 var giant_remaining: float = 0.0
 
+## Divine flight: double-tap [SPACE] to soar in a horizontal pose. Faster, and above ground
+## dangers (fire, imp bites, ground slams); walls still block him.
+signal flight_changed(active: bool)
+const FLIGHT_DURATION := 2.2
+const FLIGHT_COOLDOWN := 4.0
+const FLIGHT_SPEED := 1.9
+const DOUBLE_TAP_MS := 320
+var flight_remaining: float = 0.0
+var flight_cooldown: float = 0.0
+## Horizontal heading while flying: 1 = right, -1 = left.
+var flight_dir: int = 1
+var _last_space_ms: int = -10000
+
 var health: int
 var shrink_remaining: float = 0.0
 var shrink_cooldown: float = 0.0
@@ -67,6 +80,9 @@ func _load_walk_textures(direction: String) -> Array[Texture2D]:
 		textures.append(load("res://assets/characters/hanuman/char_hanuman_walk_%s_%02d.png" % [direction, frame]))
 	return textures
 
+## Playable world bounds; the level sets this when a chapter loads.
+var world_rect := Rect2(0, 0, 640, 360)
+
 ## Maze crevices live on this physics layer; Hanuman only collides with them at full size.
 const CREVICE_LAYER := 2
 
@@ -78,11 +94,14 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	var input_direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	velocity = input_direction * (move_speed * (0.72 if is_shrunk() else 1.0))
+	var speed_mult := 0.72 if is_shrunk() else (FLIGHT_SPEED if is_flying() else 1.0)
+	if is_flying() and absf(input_direction.x) > 0.1:
+		flight_dir = 1 if input_direction.x > 0.0 else -1
+	velocity = input_direction * (move_speed * speed_mult)
 	set_collision_mask_value(CREVICE_LAYER, not is_shrunk())
 	move_and_slide()
-	global_position.x = clampf(global_position.x, 16.0, 624.0)
-	global_position.y = clampf(global_position.y, 16.0, 344.0)
+	global_position = global_position.clamp(world_rect.position + Vector2(10, 14), world_rect.end - Vector2(10, 14))
+	_update_flight(delta)
 	_update_shrink(delta)
 	_update_attack(delta)
 	_update_charge(delta)
@@ -92,6 +111,14 @@ func _physics_process(delta: float) -> void:
 		sprite.scale = Vector2.ONE * GIANT_SCALE
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Double-tap SPACE → divine flight. (Dialogue and story cards consume Space first.)
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_SPACE:
+		var now := Time.get_ticks_msec()
+		if now - _last_space_ms <= DOUBLE_TAP_MS:
+			_last_space_ms = -10000
+			try_fly()
+		else:
+			_last_space_ms = now
 	if event.is_action_released("attack"):
 		if _charged:
 			attack_timer = 0.4
@@ -103,7 +130,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		shrink_cooldown = SHRINK_COOLDOWN
 		GameEvents.shrink_ability_updated.emit(true, 0.0, SHRINK_COOLDOWN, shrink_remaining, SHRINK_DURATION)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("attack") and _pending_hit < 0.0:
+	elif event.is_action_pressed("attack") and _pending_hit < 0.0 and not is_flying():
 		# Presses during anticipation are ignored; presses soon after a hit chain the combo.
 		_combo_step = (_combo_step % 3) + 1 if _combo_timer > 0.0 else 1
 		var heavy := _combo_step == 3
@@ -124,8 +151,29 @@ func _update_attack(delta: float) -> void:
 		_pending_hit = -1.0
 		attack_performed.emit(global_position)
 
+## Starts a flight if it is off cooldown (not while shrunk or giant). Returns true on take-off.
+func try_fly() -> bool:
+	if is_flying() or flight_cooldown > 0.0 or is_shrunk() or is_giant():
+		return false
+	flight_remaining = FLIGHT_DURATION
+	flight_cooldown = FLIGHT_COOLDOWN
+	flight_dir = -1 if facing == "left" else 1
+	flight_changed.emit(true)
+	return true
+
+func is_flying() -> bool:
+	return flight_remaining > 0.0
+
+func _update_flight(delta: float) -> void:
+	if flight_remaining > 0.0:
+		flight_remaining = maxf(0.0, flight_remaining - delta)
+		if flight_remaining <= 0.0:
+			flight_changed.emit(false)
+	elif flight_cooldown > 0.0:
+		flight_cooldown = maxf(0.0, flight_cooldown - delta)
+
 func _update_charge(delta: float) -> void:
-	if not Input.is_action_pressed("attack"):
+	if not Input.is_action_pressed("attack") or is_flying():
 		charge_time = 0.0
 		_charged = false
 		return
@@ -142,6 +190,12 @@ func activate_giant(seconds: float) -> void:
 	shrink_remaining = 0.0
 
 func _update_sprite(delta: float, input_direction: Vector2) -> void:
+	if is_flying():
+		# Flying pose: the side-on stride frame; the presentation turns him horizontal.
+		facing = "left" if flight_dir < 0 else "right"
+		sprite.texture = strike_textures[facing]
+		sprite.scale = Vector2.ONE
+		return
 	if attack_timer > 0.0:
 		attack_timer = maxf(0.0, attack_timer - delta)
 		sprite.texture = strike_textures[facing]

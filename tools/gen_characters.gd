@@ -35,6 +35,9 @@ const RAMPS := {
 	"impred":  ["#3a0a12", "#7e1a2a", "#c03a3a", "#ee7a6a"],
 	"shade":   ["#241a48", "#4a3a8a", "#7a68c8", "#b4a8f0"],
 	"thorn":   ["#2a5a20", "#4e9a32", "#86cc4a", "#c8f07a"],
+	"blue":    ["#14284a", "#2a5290", "#3f73c0", "#7aa8e8"],
+	"rav":     ["#1a1022", "#3a2440", "#5e3a5e", "#8a5a7e"],
+	"flower":  ["#8a1a3a", "#c83a5a", "#e86a82", "#fbd0dc"],
 }
 
 var mat: PackedStringArray
@@ -66,6 +69,17 @@ func _init() -> void:
 	for name in portraits:
 		portraits[name].save_png(ProjectSettings.globalize_path("res://assets/ui/portraits/%s.png" % name))
 		sheet.append(portraits[name])
+	# Story-card characters, painted at higher detail for the opening and ending.
+	var story_dir := "res://assets/characters/story/"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(story_dir))
+	for entry in [["rama", 64, 128], ["sita", 48, 80], ["ravana", 72, 96]]:
+		W = entry[1]
+		H = entry[2]
+		var art: Image = call("_" + entry[0] + "_hd")
+		art.save_png(ProjectSettings.globalize_path(story_dir + "story_%s.png" % entry[0]))
+		sheet.append(art)
+	W = 24
+	H = 32
 	# Minions: 16×16, walk ×2 + wind-up, one variant per chapter.
 	var minion_dir := "res://assets/characters/enemies/minions/"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(minion_dir))
@@ -126,7 +140,15 @@ func _line(a: Vector2, b: Vector2, m: String, width: int = 1, l: float = 0.6) ->
 		for wx in width:
 			_put(floori(p.x) + wx, floori(p.y), m, l - wx * 0.25)
 
+## A filled block of detail pixels (eyes, jewels, tilak at the larger story scale).
+func _block(x: int, y: int, w: int, h: int, color: String) -> void:
+	for yy in range(y, y + h):
+		for xx in range(x, x + w):
+			_dot(xx, yy, color)
+
 func _dot(x: int, y: int, color: String) -> void:
+	if x < 0 or y < 0 or x >= W or y >= H:
+		return
 	detail[Vector2i(x, y)] = Color(color)
 
 func _render() -> Image:
@@ -319,6 +341,154 @@ func _minion(variant: String, pose: String) -> Image:
 		_dot(7, y + 2, "#f4efe0"); _dot(9, y + 2, "#f4efe0")                            # fangs
 	else:
 		_dot(8, y + 3, "#0e0a14")
+	return _render()
+
+# --- Story-card characters (higher detail) ------------------------------------------------
+
+## Lord Rama, 64×128: blue skin, kirita crown, long hair, tilak, makara earrings, flower
+## garland, gold sash, saffron dhoti with red border, holding his great bow upright.
+func _rama_hd() -> Image:
+	_clear()
+	for i in 60:                                                   # bow stave (behind him)
+		var s := i / 59.0
+		_put(int(52 + 7 * sin(PI * s)), int(8 + 108 * s), "wood", 0.5 + 0.3 * (1.0 - s))
+		_put(int(53 + 7 * sin(PI * s)), int(8 + 108 * s), "wood", 0.3)
+	_line(Vector2(51, 9), Vector2(51, 115), "ivory", 1, 0.85)       # bow string
+	_ellipse(32, 31, 12.5, 18, "hair", -0.1)                        # long hair to the shoulders
+	_rect(25, 98, 6, 22, "blue", 0.05)                              # legs
+	_rect(33, 98, 6, 22, "blue", -0.15)
+	_ellipse(28, 121, 4.5, 2.2, "gold")                             # anklets
+	_ellipse(36, 121, 4.5, 2.2, "gold", -0.1)
+	_ellipse(32, 80, 11.5, 5, "sari", 0.05)                         # dhoti: waist
+	_rect(21, 80, 22, 19, "sari")                                    # dhoti: straight drape
+	_recolor(0, 95, W, 4, "sari", "border")
+	for px in [25, 29, 33, 37]:                                      # pleats
+		_line(Vector2(px, 82), Vector2(px, 94), "sari", 1, 0.2)
+	_rect(30, 82, 4, 13, "sari", 0.35)                               # front pleat panel
+	_ellipse(32, 62, 12, 15, "blue")                                # torso
+	_ellipse(17.5, 67, 3.4, 13, "blue", 0.05)                       # arms
+	_ellipse(46, 61, 3.4, 12, "blue", -0.15)
+	_ellipse(50, 71, 3.2, 3, "blue", -0.1)                          # hand on the bow
+	_rect(29, 41, 6, 7, "blue", -0.2)                               # neck
+	_line(Vector2(21, 50), Vector2(43, 80), "gold", 2, 0.75)        # sash
+	_ellipse(32, 30, 9.5, 11.5, "blue", 0.08)                       # face
+	_ellipse(32, 19, 10.5, 5, "hair", 0.05)                         # hair over the brow
+	_rect(23, 9, 18, 9, "gold", 0.1)                                # crown band
+	for row in 10:                                                  # tapering kirita
+		var half := 8 - int(row * 0.7)
+		for x in range(32 - half, 32 + half):
+			_put(x, 8 - row, "gold", 0.35 + 0.05 * row + (0.25 if x < 32 else 0.0))
+	var marks := {}
+	for g in [Vector2i(32, 1), Vector2i(32, 12), Vector2i(26, 13), Vector2i(38, 13)]:
+		marks[g] = "#c81c2c"                                         # crown rubies
+	for g in [Vector2i(29, 5), Vector2i(35, 5)]:
+		marks[g] = "#2fa070"
+	for p in marks:
+		_block(p.x, p.y, 2, 2, marks[p])
+	_block(31, 21, 2, 5, "#f4efe0"); _block(31, 22, 2, 3, "#c81c2c") # tilak
+	_block(26, 28, 4, 1, "#0c0708"); _block(34, 28, 4, 1, "#0c0708") # brows
+	_block(27, 30, 3, 2, "#f4efe0"); _block(35, 30, 3, 2, "#f4efe0") # eyes
+	_block(28, 30, 2, 2, "#0c0708"); _block(36, 30, 2, 2, "#0c0708")
+	_block(32, 33, 1, 3, "#2a5290")                                 # nose shade
+	_block(30, 37, 5, 1, "#a8364a")                                 # lips
+	_block(21, 32, 3, 5, "#ffd84a"); _block(40, 32, 3, 5, "#ffd84a") # makara earrings
+	for i in 15:                                                    # vaijayanti flower garland
+		var a := PI * 0.12 + PI * 0.76 * i / 14.0
+		var p := Vector2(32, 44) + Vector2(cos(a) * 11.0, sin(a) * 30.0)
+		_block(int(p.x), int(p.y), 2, 2, ["#e86a82", "#f6efdc", "#ffd84a"][i % 3])
+	_block(24, 46, 16, 2, "#ffd84a")                                # necklace
+	_block(15, 58, 5, 2, "#ffd84a"); _block(44, 55, 5, 2, "#ffd84a") # armlets
+	_block(15, 78, 5, 2, "#ffd84a")                                 # wristlet
+	return _render()
+
+## Sita, 48×80, reaching back in distress as she is carried away: saffron sari with red
+## border and flowing pallu, braid with flowers, jewellery, sindoor, a tear.
+func _sita_hd() -> Image:
+	_clear()
+	_line(Vector2(30, 26), Vector2(45, 18), "border", 3, 0.6)       # pallu streaming behind
+	_line(Vector2(34, 30), Vector2(46, 34), "border", 3, 0.4)
+	_ellipse(30, 36, 2.6, 13, "hair")                               # braid down her back
+	_ellipse(27, 62, 10.5, 16, "sari")                              # lower sari
+	_recolor(0, 74, W, 5, "sari", "border")
+	for px in [20, 25, 30]:
+		_line(Vector2(px, 52), Vector2(px - 1, 72), "sari", 1, 0.2)
+	_ellipse(26, 41, 8.5, 11, "sari", 0.05)                         # bodice
+	_line(Vector2(31, 30), Vector2(21, 50), "border", 2, 0.55)      # pallu over the shoulder
+	_line(Vector2(20, 34), Vector2(5, 20), "skin", 3, 0.75)         # arm reaching back to the earth
+	_ellipse(4, 19, 2.6, 2.6, "skin", 0.1)
+	_ellipse(30, 45, 2.4, 6, "skin", -0.1)                          # other arm at her chest
+	_rect(23, 25, 5, 5, "skin", -0.15)                              # neck
+	_ellipse(26, 15, 8, 9.5, "hair", -0.05)                         # hair
+	_ellipse(23, 16, 6.2, 7.2, "skin", 0.1)                         # face, turned back
+	_block(26, 6, 1, 4, "#c81c2c")                                  # sindoor
+	_block(22, 12, 2, 2, "#c81c2c")                                 # bindi
+	_block(19, 15, 3, 2, "#2a120c")                                 # eye
+	_block(19, 17, 1, 3, "#9fd0e8")                                 # tear
+	_block(20, 21, 2, 2, "#a8364a")                                 # mouth, crying out
+	_block(28, 17, 2, 3, "#ffd84a")                                 # earring
+	_block(20, 26, 8, 1, "#ffd84a")                                 # necklace
+	_block(6, 22, 3, 2, "#ffd84a")                                  # bangles
+	_block(32, 9, 2, 2, "#f2f2e8"); _block(33, 12, 2, 2, "#e86a82")  # jasmine in her hair
+	return _render()
+
+## Ravana, 72×96: ten crowned heads in a fan, glaring eyes and moustaches, gold breastplate,
+## pauldrons, royal cape, raised sword.
+func _ravana_hd() -> Image:
+	_clear()
+	_ellipse(36, 66, 19, 26, "royal", -0.35)                       # cape behind
+	_line(Vector2(60, 2), Vector2(58, 40), "steel", 2, 0.85)       # sword raised overhead
+	_rect(54, 40, 9, 3, "gold", 0.3)                               # crossguard
+	_rect(56, 43, 4, 6, "wood", 0.3)                               # grip
+	_rect(27, 76, 8, 20, "rav", 0.05)                              # legs
+	_rect(37, 76, 8, 20, "rav", -0.15)
+	_ellipse(36, 78, 14, 9, "cloth")                               # dhoti
+	_recolor(0, 82, W, 4, "cloth", "gold")
+	_rect(26, 62, 20, 12, "rav", -0.05)                            # waist
+	_ellipse(36, 56, 14, 12, "rav")                                # chest
+	_ellipse(36, 55, 10, 8, "gold", 0.05)                          # breastplate
+	_rect(25, 66, 22, 3, "gold", 0.1)                              # belt
+	_ellipse(21, 48, 6.5, 5, "gold", 0.15)                         # pauldrons
+	_ellipse(51, 48, 6.5, 5, "gold", -0.1)
+	_ellipse(15, 61, 4.5, 11, "rav", 0.05)                         # left arm
+	_ellipse(14, 73, 3.4, 3, "rav")
+	_ellipse(55, 46, 4, 9, "rav", -0.1)                            # right arm up to the sword
+	_ellipse(57, 46, 3.4, 3, "rav")
+	_rect(32, 38, 8, 8, "rav", -0.2)                               # neck
+	# Nine heads fanned behind in a crowned halo, then the great central head in front.
+	var halo := []
+	for i in 9:
+		var a := deg_to_rad(-168.0 + i * 19.5)
+		if absf(a + PI * 0.5) < 0.15:
+			continue
+		halo.append(Vector2(36, 34) + Vector2(cos(a) * 22.0, sin(a) * 15.0))
+	for c in halo:
+		_ellipse(c.x, c.y, 5.2, 5.8, "rav", -0.05)
+		_rect(int(c.x - 5), int(c.y - 9), 10, 3, "gold", 0.15)
+		_put(int(c.x), int(c.y - 11), "gold", 0.9)
+		_put(int(c.x), int(c.y - 10), "gold", 0.7)
+	_ellipse(36, 28, 9, 10.5, "rav", 0.12)                         # central head
+	_rect(26, 13, 20, 6, "gold", 0.15)                             # tall central crown
+	for row in 7:
+		var half := 8 - row
+		for x in range(36 - half, 36 + half):
+			_put(x, 12 - row, "gold", 0.4 + (0.3 if x < 36 else 0.0))
+	for c in halo:
+		_block(int(c.x) - 3, int(c.y) - 1, 2, 1, "#ff3b2f")
+		_block(int(c.x) + 1, int(c.y) - 1, 2, 1, "#ff3b2f")
+		_block(int(c.x) - 2, int(c.y) + 2, 5, 1, "#0c0708")
+	_block(30, 23, 5, 1, "#0c0708"); _block(37, 23, 5, 1, "#0c0708")   # furious brows
+	_block(31, 25, 3, 2, "#ffd84a"); _block(38, 25, 3, 2, "#ffd84a")   # burning eyes
+	_block(32, 25, 1, 2, "#ff3b2f"); _block(39, 25, 1, 2, "#ff3b2f")
+	_block(36, 27, 1, 3, "#3a2440")                                    # nose
+	_block(29, 31, 15, 2, "#0c0708")                                   # thick moustache
+	_block(28, 30, 2, 1, "#0c0708"); _block(43, 30, 2, 1, "#0c0708")
+	_block(32, 34, 9, 1, "#5e1220")                                    # snarl
+	_block(33, 33, 1, 2, "#f4efe0"); _block(39, 33, 1, 2, "#f4efe0")   # fangs
+	_block(26, 26, 2, 4, "#ffd84a"); _block(45, 26, 2, 4, "#ffd84a")   # earrings
+	for g in [Vector2i(35, 6), Vector2i(30, 15), Vector2i(41, 15)]:
+		_block(g.x, g.y, 2, 2, "#c81c2c")                              # crown rubies
+	_block(34, 53, 4, 4, "#c81c2c"); _block(35, 54, 1, 1, "#ff9a9a")   # ruby on the breastplate
+	_block(12, 66, 6, 2, "#ffd84a")                                    # bracer
 	return _render()
 
 func _save_preview(images: Array[Image], dir: String) -> void:

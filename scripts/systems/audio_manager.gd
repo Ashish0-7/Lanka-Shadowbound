@@ -95,6 +95,15 @@ func stop_music() -> void:
 	if music_player and music_player.playing:
 		music_player.stop()
 
+## Story beat: the music rises, holds, and settles back to its normal level.
+func swell(peak_db: float = -4.0, rise: float = 0.8, fall: float = 2.6) -> void:
+	if music_player == null:
+		return
+	play_music()
+	var tween := create_tween()
+	tween.tween_property(music_player, "volume_db", peak_db, rise).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(music_player, "volume_db", -12.0, fall).set_trans(Tween.TRANS_SINE)
+
 func play_music() -> void:
 	if music_player and not music_player.playing:
 		music_player.play()

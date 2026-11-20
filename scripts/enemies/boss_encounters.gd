@@ -9,9 +9,11 @@ extends Node2D
 signal lankini_defeated()
 signal lankini_health_changed(health: int)
 
-const SURASA_POS := Vector2(350, 180)
-const SIMHIKA_POS := Vector2(490, 180)
-const LANKINI_POS := Vector2(500, 180)
+## Boss anchors come from the map markers 1 (Surasa), 2 (Simhika), 3 (Lankini).
+var SURASA_POS := Vector2(350, 180)
+var SIMHIKA_POS := Vector2(490, 180)
+var LANKINI_POS := Vector2(500, 180)
+var _world := Rect2(0, 0, 640, 384)
 const LANKINI_MAX_HEALTH := 6
 const FEET := Vector2(0, 14)
 
@@ -73,6 +75,20 @@ func _make_marker(shape: TelegraphMarker.Shape, at: Vector2, color: Color) -> Te
 	add_child(marker)
 	return marker
 
+## Places the bosses and their warning areas from the chapter map. Surasa's jaws span the
+## whole map height, so she cannot be walked around.
+func place_from_maze(maze: LevelMaze) -> void:
+	_world = maze.world_rect()
+	SURASA_POS = maze.marker_position("1", SURASA_POS)
+	SIMHIKA_POS = maze.marker_position("2", SIMHIKA_POS)
+	LANKINI_POS = maze.marker_position("3", LANKINI_POS)
+	surasa.position = SURASA_POS
+	simhika.position = SIMHIKA_POS
+	lankini.position = LANKINI_POS
+	jaw_marker.position = Vector2(SURASA_POS.x + 10, _world.get_center().y)
+	jaw_marker.rect_size = Vector2(120, _world.size.y)
+	slam_marker.position = LANKINI_POS + Vector2(0, 30)
+
 ## Called by the director whenever a chapter starts or restarts.
 func reset_for_chapter(chapter: int) -> void:
 	for attack in [surasa_attack, simhika_attack, lankini_attack]:
@@ -100,11 +116,11 @@ func update_ocean(delta: float) -> void:
 	surasa_attack.update(delta)
 	simhika_attack.update(delta)
 	if not surasa_passed:
-		if x > 262.0 and x < 425.0 and surasa_attack.is_ready():
+		if x > SURASA_POS.x - 88.0 and x < SURASA_POS.x + 75.0 and surasa_attack.is_ready():
 			surasa_attack.start()
-		if x > 425.0:
+		if x > SURASA_POS.x + 75.0:
 			_on_surasa_passed()
-	elif x > 440.0 and x < 600.0 and simhika_attack.is_ready():
+	elif absf(x - SIMHIKA_POS.x) < 120.0 and player.global_position.distance_to(SIMHIKA_POS) < 220.0 and simhika_attack.is_ready():
 		simhika_attack.start()
 	# Simhika's shadow follows Hanuman for most of the wind-up, then locks in place.
 	if shadow_marker.is_warning() and simhika_attack.phase == TelegraphedAttack.Phase.WINDUP:
@@ -195,7 +211,7 @@ func _on_lankini_strike() -> void:
 	VFXImpact.shockwave(self, slam_marker.global_position, 92.0, Color(1.0, 0.75, 0.45), 0.6)
 	_layered(["whoosh", "slam"], -1.0)
 	GameFeel.shake(self, 7.0, 0.3)
-	if slam_marker.contains(player.global_position + FEET):
+	if slam_marker.contains(player.global_position + FEET) and not player.is_flying():
 		GameFeel.hitstop(self, 0.1)
 		director.hurt_player(12, LANKINI_POS, 38.0, "Lankini's slam sends you flying!")
 

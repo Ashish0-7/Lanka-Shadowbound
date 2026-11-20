@@ -1,11 +1,11 @@
 extends SceneTree
-## Validates MazeLayouts: row sizes, solvable without crevices, boss areas clear.
+## Validates MazeLayouts: equal row lengths, goal reachable without crevices, every lotus and
+## imp cluster reachable, and a rough route time.
 ## Run: godot --headless --path . -s tools/check_mazes.gd
 
-const COLS := 20
-const ROWS := 11
 const SPEED := 120.0  # Hanuman's walk speed, px/s
 const MazeLayouts := preload("res://scripts/world/maze_layouts.gd")
+const WALKABLE := [".", "S", "E", "G", "T", "M", "o", "m", "h", "1", "2", "3"]
 
 func _init() -> void:
 	var ok := true
@@ -16,63 +16,44 @@ func _init() -> void:
 
 func _check(chapter: int, rows: Array) -> bool:
 	var ok := true
-	if rows.size() != ROWS:
-		print("ch%d: expected %d rows, got %d" % [chapter, ROWS, rows.size()]); return false
+	var width: int = String(rows[0]).length()
 	var start := Vector2i(-1, -1)
 	var goals: Array[Vector2i] = []
-	for y in ROWS:
-		if rows[y].length() != COLS:
-			print("ch%d row %d: length %d" % [chapter, y, rows[y].length()]); ok = false
-		for x in mini(COLS, rows[y].length()):
+	var must_reach: Array[Vector2i] = []
+	for y in rows.size():
+		if String(rows[y]).length() != width:
+			print("ch%d row %d: length %d (expected %d)" % [chapter, y, String(rows[y]).length(), width]); ok = false
+		for x in String(rows[y]).length():
 			var ch: String = rows[y][x]
 			if ch == "S": start = Vector2i(x, y)
-			if ch == "E" or ch == "T": goals.append(Vector2i(x, y))
-	if chapter == 2:
-		for r: Rect2i in MazeLayouts.KEEP_CLEAR[2]:
-			goals.append(r.position + r.size / 2)
-	for r: Rect2i in MazeLayouts.KEEP_CLEAR.get(chapter, []):
-		for y in range(r.position.y, r.end.y):
-			for x in range(r.position.x, r.end.x):
-				if not _walkable(rows[y][x], false):
-					print("ch%d: keep-clear cell (%d,%d) is '%s'" % [chapter, x, y, rows[y][x]]); ok = false
-	var plain := _bfs(rows, start, goals, false)
-	var shrunk := _bfs(rows, start, goals, true)
-	var dead_ends := _count_dead_ends(rows)
-	if plain < 0:
+			if ch in ["E", "T", "3"]: goals.append(Vector2i(x, y))
+			if ch in ["o", "m"]: must_reach.append(Vector2i(x, y))
+	var dist := _bfs(rows, start, false)
+	var best := -1
+	for g in goals:
+		if dist.has(g) and (best < 0 or dist[g] < best):
+			best = dist[g]
+	if best < 0:
 		print("ch%d: goal NOT reachable without crevices" % chapter); ok = false
-	print("ch%d: shortest path %d cells (~%.0f s), with crevices %d cells, dead ends %d" % [chapter, plain, plain * 32.0 / SPEED, shrunk, dead_ends])
+	var shrunk := _bfs(rows, start, true)
+	for p in must_reach:
+		if not shrunk.has(p):
+			print("ch%d: %s at %s is unreachable" % [chapter, rows[p.y][p.x], p]); ok = false
+	print("ch%d: %dx%d cells (%.1f x %.1f screens), shortest route %d cells (~%.0f s)" % [
+		chapter, width, rows.size(), width * 32 / 640.0, rows.size() * 32 / 360.0, best, best * 32.0 / SPEED])
 	return ok
 
-func _walkable(ch: String, shrunk: bool) -> bool:
-	return ch in [".", "S", "E", "G", "T", "M"] or (shrunk and ch == "c")
-
-func _bfs(rows: Array, start: Vector2i, goals: Array[Vector2i], shrunk: bool) -> int:
+func _bfs(rows: Array, start: Vector2i, shrunk: bool) -> Dictionary:
 	var dist := {start: 0}
 	var queue: Array[Vector2i] = [start]
 	while not queue.is_empty():
 		var cell: Vector2i = queue.pop_front()
-		if cell in goals:
-			return dist[cell]
 		for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 			var n: Vector2i = cell + d
-			if n.x < 0 or n.y < 0 or n.x >= COLS or n.y >= ROWS or dist.has(n):
+			if n.y < 0 or n.y >= rows.size() or n.x < 0 or n.x >= String(rows[n.y]).length() or dist.has(n):
 				continue
-			if _walkable(rows[n.y][n.x], shrunk):
+			var ch: String = rows[n.y][n.x]
+			if ch in WALKABLE or (shrunk and ch == "c"):
 				dist[n] = dist[cell] + 1
 				queue.append(n)
-	return -1
-
-func _count_dead_ends(rows: Array) -> int:
-	var count := 0
-	for y in ROWS:
-		for x in COLS:
-			if not _walkable(rows[y][x], false):
-				continue
-			var exits := 0
-			for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-				var n: Vector2i = Vector2i(x, y) + d
-				if n.x >= 0 and n.y >= 0 and n.x < COLS and n.y < ROWS and _walkable(rows[n.y][n.x], false):
-					exits += 1
-			if exits == 1:
-				count += 1
-	return count
+	return dist
